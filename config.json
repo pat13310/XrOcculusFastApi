@@ -1,0 +1,8 @@
+{
+  "host": "0.0.0.0",
+  "port": 8000,
+  "reload": true,
+  "SECRET_KEY": "rzrljz!-erjvncxvassssswwwwppcc!:ùlç;",
+  "ALGORITHM": "HS256",
+  "ACCESS_TOKEN_EXPIRE_MINUTES":30
+}
