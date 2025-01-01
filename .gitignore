@@ -1,0 +1,50 @@
+# Ignorer les fichiers de configuration
+config.json
+
+# Ignorer les fichiers de configuration supplémentaires
+*.env
+*.ini
+
+# Ignorer les dossiers de l'environnement virtuel
+.venv/
+env/
+venv/
+
+# Ignorer les dossiers de build
+build/
+dist/
+
+# Ignorer les fichiers de cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Ignorer les fichiers de log
+*.log
+
+# Ignorer les fichiers de base de données
+*.sqlite3
+
+# Ignorer les fichiers de documentation générés
+docs/_build/
+
+# Ignorer les fichiers de test
+.coverage
+.tox/
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+
+# Ignorer les fichiers de déploiement
+*.bak
+*.swp
+*.tmp
+*.temp
+
+# Ignorer les fichiers de l'IDE
+.vscode/
+.idea/
+
+# Ignorer les fichiers de Docker
+docker-compose.override.yml
