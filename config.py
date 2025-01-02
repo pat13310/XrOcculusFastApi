@@ -14,6 +14,8 @@ def load_config():
             "host": "0.0.0.0",
             "port": 8000,
             "reload": True,
-            "SECRET_KEY": "rzrljz!-erjvncxvassssswwwwppcc!:ùlç;"
+            "SECRET_KEY": "rzrljz!-erjvncxvassssswwwwppcc!:ùlç;",
+            "ALGORITHM": "HS256",
+            "ACCESS_TOKEN_EXPIRE_MINUTES": 300
         }
     return config

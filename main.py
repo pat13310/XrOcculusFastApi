@@ -9,16 +9,20 @@ from sqlalchemy.orm import Session
 import os
 from datetime import timedelta
 from models.models import User
-from routes.config import load_config
+from config import load_config
 
 # Importer le routeur auth et les fonctions utilitaires
-from routes.auth import router as auth_router, get_user
+from routes.users import router as user_router
+from routes.groups import router as group_router
+
 from auth.auth import (
     authenticate_user, 
     create_access_token,     
     ACCESS_TOKEN_EXPIRE_MINUTES
 )
 from database import get_db, engine, Base, init_db
+
+from fastapi.openapi.docs import get_swagger_ui_html, get_redoc_html
 
 # Configurer le journal
 logging.basicConfig(level=logging.DEBUG)
@@ -41,9 +45,13 @@ class LoginRequest(BaseModel):
     username: str
     password: str
 
+
+def get_user(db: Session, username: str):
+    return db.query(User).filter(User.username == username).first()
+
 # Route de login
 @app.post("/login")
-async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     user = authenticate_user(
         db, 
         form_data.username, 
@@ -96,8 +104,9 @@ async def get_current_active_user(current_user: User = Depends(get_current_user)
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_user
 
-# Inclure le routeur auth
-app.include_router(auth_router)
+# Inclure le routeur auth avec la dépendance db
+app.include_router(user_router, dependencies=[Depends(get_db)])
+app.include_router(group_router, dependencies=[Depends(get_db)])
 
 # Route de logout
 @app.post("/logout")
@@ -105,13 +114,33 @@ async def logout(token: str = Depends(oauth2_scheme)):
     blacklist.add(token)
     return {"message": "Déconnexion réussie"}
 
+# Route racine
+@app.get("/")
+async def read_root():
+    return {
+        "message": "Bienvenue sur l'API XrOcculus FastAPI",
+        "version": config.get("version", "1.0.0"),
+        "date_de_creation": "2025-01-01",
+        "auteur": "Xen"
+    }
+
 # Middleware pour gérer les erreurs 404
 @app.middleware("http")
 async def custom_404_handler(request: Request, call_next):
     response = await call_next(request)
-    if response.status_code == 404:
+    if (response.status_code == 404):
         return JSONResponse(status_code=404, content={"message": "Page non trouvée"})
     return response
+
+# Route de développement pour Swagger UI
+@app.get("/dev/swagger", include_in_schema=False)
+async def swagger_ui_html():
+    return get_swagger_ui_html(openapi_url="/openapi.json", title="Swagger UI")
+
+# Route de développement pour ReDoc
+@app.get("/dev/redoc", include_in_schema=False)
+async def redoc_html():
+    return get_redoc_html(openapi_url="/openapi.json", title="ReDoc")
 
 # Démarrage du serveur
 if __name__ == '__main__':

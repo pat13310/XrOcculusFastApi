@@ -1,6 +1,4 @@
-import os
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 from typing import Optional, List
@@ -8,11 +6,15 @@ from pydantic import BaseModel
 from database import get_db
 from utils import hash_password, verify_password
 from fastapi.security import OAuth2PasswordBearer
-from routes.config import load_config
+from config import load_config
+
+from jose import jwt
+import logging
+from models.models import User
+from decorators import jwt_required
+
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
-# Charger la configuration depuis un fichier externe
-config = load_config()
 
 def get_current_user(db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
     credentials_exception = HTTPException(
@@ -31,9 +33,6 @@ def get_current_user(db: Session = Depends(get_db), token: str = Depends(oauth2_
     if user is None:
         raise credentials_exception
     return user
-from jose import jwt
-import logging
-from models.models import User, Group
 
 logger = logging.getLogger(__name__)
 
@@ -63,13 +62,6 @@ class UserOut(BaseModel):
     deleted_at: Optional[datetime] = None
     last_login: Optional[datetime] = None
 
-class GroupCreate(BaseModel):
-    name: str
-
-class GroupOut(BaseModel):
-    id: int
-    name: str
-
 # --- Fonctions Utilitaires ---
 def get_user(db: Session, username: str):
     return db.query(User).filter(User.username == username).first()
@@ -96,6 +88,7 @@ def create_access_token(data: dict, expires_delta: timedelta = timedelta(minutes
 
 # --- Routes ---
 @router.post("/users", response_model=UserOut)
+@jwt_required
 async def add_user(user: UserCreate, db: Session = Depends(get_db)):
     existing_user = db.query(User).filter(User.username == user.username).first()
     if existing_user:
@@ -125,12 +118,14 @@ async def add_user(user: UserCreate, db: Session = Depends(get_db)):
 
 
 @router.get("/users", response_model=List[UserOut])
+@jwt_required
 async def list_users(db: Session = Depends(get_db)):
     users = db.query(User).all()
     return users
 
 
 @router.delete("/users/delete/{user_id}")
+@jwt_required
 async def delete_user(user_id: int, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
@@ -143,29 +138,3 @@ async def delete_user(user_id: int, db: Session = Depends(get_db)):
 @router.get("/users/me", response_model=UserOut)
 async def read_users_me(current_user: User = Depends(get_current_user)):
     return current_user
-
-@router.post("/groups", response_model=GroupOut)
-async def add_group(group: GroupCreate, db: Session = Depends(get_db)):
-    existing_group = db.query(Group).filter(Group.name == group.name).first()
-    if existing_group:
-        raise HTTPException(status_code=400, detail="Group already registered")
-
-    new_group = Group(name=group.name)
-    db.add(new_group)
-    db.commit()
-    db.refresh(new_group)
-    return new_group
-
-@router.get("/groups", response_model=List[GroupOut])
-async def list_groups(db: Session = Depends(get_db)):
-    groups = db.query(Group).all()
-    return groups
-
-@router.delete("/groups/delete/{group}")
-async def delete_group(group: int, db: Session = Depends(get_db)):
-    group = db.query(Group).filter(Group.id == group).first()
-    if not group:
-        return {"error": "Groupe non trouvé"}
-    db.delete(group)
-    db.commit()
-    return group

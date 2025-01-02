@@ -10,15 +10,16 @@ import logging
 import os
 from sqlalchemy.orm import Session
 from database import SessionLocal  # Importer la session de la base de données
-
+from config import load_config
 # Configuration du logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+config=load_config()
 
-SECRET_KEY = os.getenv("SECRET_KEY", "default_secret_key")
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+SECRET_KEY = config.get('SECRET_KEY')
+ALGORITHM = config.get('ALGORITHM')
+ACCESS_TOKEN_EXPIRE_MINUTES = config.get('ACCESS_TOKEN_EXPIRE_MINUTES')
 
 # Hachage du mot de passe avec des paramètres plus robustes
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto", bcrypt__default_rounds=12)
