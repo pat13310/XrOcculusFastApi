@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from typing import Optional, List
 from pydantic import BaseModel
 from database import get_db
-from models.models import Session, User
+from models.models import Session, User, user_session_association
 from fastapi.security import OAuth2PasswordBearer
 from config import load_config
 import logging
@@ -82,7 +82,11 @@ async def delete_session(request: Request, session_id: int, db: Session = Depend
 async def stop_session(request: Request, session_id: int, db: Session = Depends(get_db)):
     session = db.query(Session).filter(Session.id == session_id).first()
     if not session:
-        raise HTTPException(status_code=404, detail="Session non trouvée")
+        raise HTTPException(status_code=400, detail="Session non trouvée")
+    
+    # Supprimer les associations utilisateur-session
+    db.execute(user_session_association.delete().where(user_session_association.c.session_id == session_id))
+    db.commit()
     
     session.ended_at = datetime.utcnow()
     session.state = "inactive"
@@ -90,19 +94,59 @@ async def stop_session(request: Request, session_id: int, db: Session = Depends(
     db.refresh(session)
     return session
 
+# Route pour démarrer une session par ID
+@router.get("/sessions/start/{session_id}")
+@jwt_required
+async def start_session(request: Request, session_id: int, db: Session = Depends(get_db)):
+    session = db.query(Session).filter(Session.id == session_id).first()
+    if not session:
+        raise HTTPException(status_code=400, detail="Session non trouvée")
+    
+    if session.state == "active":
+        raise HTTPException(status_code=400, detail="La session est déjà active")
+
+    session.state = "active"
+    db.commit()
+    db.refresh(session)
+    return session
+
 # Route pour associer un utilisateur à une session
-@router.post("/sessions/{session_id}/add_user/{user_id}")
+@router.post("/sessions/{session_id}/link/{user_id}")
 @jwt_required
 async def add_user_to_session(request: Request, session_id: int, user_id: int, db: Session = Depends(get_db)):
     session = db.query(Session).filter(Session.id == session_id).first()
+    if user_id == -1 or user_id==0:
+        raise HTTPException(status_code=400, detail="ID utilisateur invalide")
     if not session:
-        raise HTTPException(status_code=404, detail="Session non trouvée")
+        raise HTTPException(status_code=400, detail="Session non trouvée")
 
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
-        raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
+        raise HTTPException(status_code=400, detail="Utilisateur non trouvé")
+
+    if user in session.users:
+        raise HTTPException(status_code=400, detail="Utilisateur déjà associé à la session")
 
     session.users.append(user)
     db.commit()
     return {"message": "Utilisateur ajouté à la session avec succès"}
+
+# Route pour dissocier un utilisateur d'une session
+@router.delete("/sessions/{session_id}/unlink/{user_id}")
+@jwt_required
+async def unlink_user_from_session(request: Request, session_id: int, user_id: int, db: Session = Depends(get_db)):
+    session = db.query(Session).filter(Session.id == session_id).first()
+    if not session:
+        raise HTTPException(status_code=400, detail="Session non trouvée")
+
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=400, detail="Utilisateur non trouvé")
+
+    if user not in session.users:
+        raise HTTPException(status_code=400, detail="Utilisateur non associé à la session")
+
+    session.users.remove(user)
+    db.commit()
+    return {"message": "Utilisateur dissocié de la session avec succès"}
 
