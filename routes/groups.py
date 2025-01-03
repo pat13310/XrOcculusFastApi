@@ -36,7 +36,7 @@ class GroupOut(BaseModel):
 async def add_group( request:Request, group: GroupCreate, db: Session = Depends(get_db)):
     existing_group = db.query(Group).filter(Group.name == group.name).first()
     if existing_group:
-        raise HTTPException(status_code=400, detail="Group already registered")
+        raise HTTPException(status_code=400, detail="Group déjà défini")
 
     new_group = Group(name=group.name)
     db.add(new_group)

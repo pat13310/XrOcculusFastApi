@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 from typing import Optional, List
@@ -89,7 +89,7 @@ def create_access_token(data: dict, expires_delta: timedelta = timedelta(minutes
 # --- Routes ---
 @router.post("/users", response_model=UserOut)
 @jwt_required
-async def add_user(user: UserCreate, db: Session = Depends(get_db)):
+async def add_user(request:Request, user: UserCreate, db: Session = Depends(get_db)):
     existing_user = db.query(User).filter(User.username == user.username).first()
     if existing_user:
         logger.warning("Tentative d'ajout d'un utilisateur existant : %s", user.username)
@@ -119,14 +119,14 @@ async def add_user(user: UserCreate, db: Session = Depends(get_db)):
 
 @router.get("/users", response_model=List[UserOut])
 @jwt_required
-async def list_users(db: Session = Depends(get_db)):
+async def list_users(request:Request,db: Session = Depends(get_db)):
     users = db.query(User).all()
     return users
 
 
 @router.delete("/users/delete/{user_id}")
 @jwt_required
-async def delete_user(user_id: int, db: Session = Depends(get_db)):
+async def delete_user(request:Request,user_id: int, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         return {"error": "Utilisateur non trouvé"}

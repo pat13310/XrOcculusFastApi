@@ -14,6 +14,7 @@ from config import load_config
 # Importer le routeur auth et les fonctions utilitaires
 from routes.users import router as user_router
 from routes.groups import router as group_router
+from routes.session import router as session_router
 
 from auth.auth import (
     authenticate_user, 
@@ -107,6 +108,7 @@ async def get_current_active_user(current_user: User = Depends(get_current_user)
 # Inclure le routeur auth avec la dépendance db
 app.include_router(user_router, dependencies=[Depends(get_db)])
 app.include_router(group_router, dependencies=[Depends(get_db)])
+app.include_router(session_router, dependencies=[Depends(get_db)])
 
 # Route de logout
 @app.post("/logout")
@@ -128,9 +130,17 @@ async def read_root():
 @app.middleware("http")
 async def custom_404_handler(request: Request, call_next):
     response = await call_next(request)
-    if (response.status_code == 404):
-        return JSONResponse(status_code=404, content={"message": "Page non trouvée"})
+    if response.status_code == 404:
+        return JSONResponse(status_code=404, content={"message": "Ressource non trouvée"})
     return response
+
+# Gestionnaire d'erreurs personnalisé pour les erreurs HTTP
+@app.exception_handler(HTTPException)
+async def custom_http_exception_handler(request: Request, exc: HTTPException):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"message": exc.detail}
+    )
 
 # Route de développement pour Swagger UI
 @app.get("/dev/swagger", include_in_schema=False)

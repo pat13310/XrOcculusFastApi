@@ -4,5 +4,5 @@
   "reload": true,
   "SECRET_KEY": "rzrljz!-erjvncxvassssswwwwppcc!:ùlç;",
   "ALGORITHM": "HS256",
-  "ACCESS_TOKEN_EXPIRE_MINUTES":30
+  "ACCESS_TOKEN_EXPIRE_MINUTES":3000
 }
