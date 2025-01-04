@@ -15,6 +15,8 @@ from config import load_config
 from routes.users import router as user_router
 from routes.groups import router as group_router
 from routes.session import router as session_router
+from routes.devices import router as device_router
+from routes.system import router as system_router
 
 from auth.auth import (
     authenticate_user, 
@@ -109,6 +111,9 @@ async def get_current_active_user(current_user: User = Depends(get_current_user)
 app.include_router(user_router, dependencies=[Depends(get_db)])
 app.include_router(group_router, dependencies=[Depends(get_db)])
 app.include_router(session_router, dependencies=[Depends(get_db)])
+app.include_router(device_router, dependencies=[Depends(get_db)])
+app.include_router(system_router, dependencies=[Depends(get_db)])
+
 
 # Route de logout
 @app.post("/logout")

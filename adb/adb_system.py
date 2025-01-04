@@ -7,6 +7,51 @@ logger = logging.getLogger(__name__)
 
 class AdbSystem:
     @staticmethod
+    def parse_output(output: str) -> Dict[str, Any]:
+        """Transforme la sortie brute en JSON structuré."""
+        parsed_data = {}
+        for line in output.splitlines():
+            if ": " in line:
+                key, value = line.split(": ", 1)
+                parsed_data[key.strip()] = value.strip()
+        return parsed_data
+
+    @staticmethod
+    def parse_uptime(output: str) -> Dict[str, Any]:
+        """Transforme la sortie brute de la commande uptime en JSON structuré."""
+        match = re.match(r"(\d+:\d+:\d+) up (.*),\s+(\d+) users?,\s+load average: (.*)", output)
+        if match:
+            return {
+                "time": match.group(1),
+                "uptime": match.group(2),
+                "users": int(match.group(3)),
+                "load_average": match.group(4).split(", ")
+            }
+        return {}
+
+    @staticmethod
+    def parse_thermal_info(output: str) -> Dict[str, Any]:
+        """Transforme la sortie brute des informations thermiques en JSON structuré."""
+        thermal_info = {}
+        temperatures = []
+        for line in output.splitlines():
+            if "Temperature{" in line:
+                temp_match = re.match(r"\tTemperature\{mValue=(.*?), mType=(.*?), mName=(.*?), mStatus=(.*?)\}", line)
+                if temp_match:
+                    temperatures.append({
+                        "name": temp_match.group(3),
+                        "value": float(temp_match.group(1)),
+                        "type": int(temp_match.group(2)),
+                        "status": int(temp_match.group(4))
+                    })
+            else:
+                if ": " in line:
+                    key, value = line.split(": ", 1)
+                    thermal_info[key.strip()] = value.strip()
+        thermal_info["temperatures"] = temperatures
+        return thermal_info
+
+    @staticmethod
     def get_android_version() -> str:
         return AdbCommandExecutor.execute(["shell", "getprop", "ro.build.version.release"])
 
@@ -20,56 +65,45 @@ class AdbSystem:
 
     @staticmethod
     def battery_info() -> Dict[str, Any]:
+        """Récupère les informations sur la batterie."""
+        logger.debug("Récupération des informations sur la batterie")
         output = AdbCommandExecutor.execute(["shell", "dumpsys", "battery"])
-        info = {
-            line.split(': ')[0].strip(): line.split(': ')[1].strip()
-            for line in output.splitlines()
-            if ': ' in line
-        }
-        return {
-            'niveau': info.get('level', 'N/A'),
-            'statut': info.get('status', 'N/A'),
-            'temperature': float(info.get('temperature', 0)) / 10 if 'temperature' in info else 'N/A',
-            'technologie': info.get('technology', 'N/A'),
-            'voltage': info.get('voltage', 'N/A')
-        }
+        logger.info(f"Informations sur la batterie : {output}")
+        return AdbSystem.parse_output(output)
 
     @staticmethod
-    def uptime() -> str:
-        return AdbCommandExecutor.execute(["shell", "uptime"])
+    def uptime() -> Dict[str, Any]:
+        """Récupère le temps de fonctionnement du périphérique."""
+        logger.debug("Récupération du temps de fonctionnement")
+        output = AdbCommandExecutor.execute(["shell", "uptime"])
+        logger.info(f"Temps de fonctionnement : {output}")
+        return AdbSystem.parse_uptime(output)
 
     @staticmethod
     def screen_status() -> str:
-        output = AdbCommandExecutor.execute(["shell", "dumpsys", "power"])
-        match = re.search(r'mScreenOn=(true|false)', output)
-        return "On" if match and match.group(1) == "true" else "Off"
+        """Récupère l'état de l'écran."""
+        logger.debug("Récupération de l'état de l'écran")
+        output = AdbCommandExecutor.execute(["shell", "dumpsys", "display"])
+        logger.info(f"État de l'écran : {output}")
+        return AdbSystem.parse_output(output)
 
     @staticmethod
-    def thermal_info() -> Dict[str, str]:
+    def thermal_info() -> Dict[str, Any]:
+        """Récupère les informations thermiques."""
+        logger.debug("Récupération des informations thermiques")
         output = AdbCommandExecutor.execute(["shell", "dumpsys", "thermalservice"])
-        return {
-            line.split(': ')[0].strip(): line.split(': ')[1].strip()
-            for line in output.splitlines()
-            if ': ' in line
-        }
+        logger.info(f"Informations thermiques : {output}")
+        return AdbSystem.parse_thermal_info(output)
 
     @staticmethod
     def get_cpu_info() -> Dict[str, Any]:
         output = AdbCommandExecutor.execute(["shell", "cat", "/proc/cpuinfo"])
-        return {
-            line.split(':')[0].strip(): line.split(':')[1].strip()
-            for line in output.splitlines()
-            if ':' in line
-        }
+        return AdbSystem.parse_output(output)
 
     @staticmethod
     def memory_info() -> Dict[str, Any]:
         output = AdbCommandExecutor.execute(["shell", "cat", "/proc/meminfo"])
-        return {
-            line.split(':')[0].strip(): line.split(':')[1].strip()
-            for line in output.splitlines()
-            if ':' in line
-        }
+        return AdbSystem.parse_output(output)
 
     @staticmethod
     def date_time() -> str:

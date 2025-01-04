@@ -4,13 +4,16 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-
 class AdbDevice:
     @staticmethod
-    def list_devices() -> List[str]:
-        """Liste les périphériques connectés via ADB."""
+    def list_devices() -> List[Dict[str, str]]:
+        """Liste les périphériques connectés via ADB et leur état."""
         output = AdbCommandExecutor.execute(["devices"])
-        devices = [line.split()[0] for line in output.splitlines()[1:] if 'device' in line]
+        devices = []
+        for line in output.splitlines()[1:]:
+            if 'device' in line or 'offline' in line or 'unauthorized' in line:
+                parts = line.split()
+                devices.append({"device": parts[0], "state": parts[1]})
         logger.info(f"Périphériques détectés : {devices}")
         return devices
 
@@ -30,16 +33,16 @@ class AdbDevice:
         """Connecte un périphérique via son adresse IP et port."""
         output = AdbCommandExecutor.execute(["connect", f"{ip}:{port}"])
         if "connected" in output.lower():
-            return {"statut": "Succès", "message": "Connecté"}
-        return {"statut": "Erreur", "message": output}
+            return {"statut": "Succès", "message": "Connecté", "detail": f"Périphérique {ip} connecté avec succès"}
+        return {"statut": "Erreur", "message": "La connexion a échoué", "detail": output}
 
     @staticmethod
     def disconnect(ip: str) -> Dict[str, str]:
         """Déconnecte un périphérique spécifique par IP."""
         output = AdbCommandExecutor.execute(["disconnect", ip])
         if "disconnected" in output.lower():
-            return {"statut": "Succès", "message": "Déconnecté"}
-        return {"statut": "Erreur", "message": output}
+            return {"statut": "Succès", "message": "Déconnecté", "detail": f"Périphérique {ip} déconnecté avec succès"}
+        return {"statut": "Erreur", "message": f"La déconnexion a échoué sur {ip}"}
 
     @staticmethod
     def reboot(serial: str = None) -> str:

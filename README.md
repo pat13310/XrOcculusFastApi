@@ -90,7 +90,9 @@ Le serveur sera disponible à l'adresse `http://127.0.0.1:8000`.
 - **POST** `/sessions` : Crée une nouvelle session.
 - **DELETE** `/sessions/delete/{session_id}` : Supprime une session par ID.
 - **GET** `/sessions/stop/{session_id}` : Arrête une session par ID.
-- **POST** `/sessions/{session_id}/add_user/{user_id}` : Associe un utilisateur à une session.
+- **GET** `/sessions/start/{session_id}` : Démarre une session par ID.
+- **POST** `/sessions/{session_id}/link/{user_id}` : Associe un utilisateur à une session.
+- **DELETE** `/sessions/{session_id}/unlink/{user_id}` : Dissocie un utilisateur d'une session.
 
 ## 📝 Modèles de données
 
