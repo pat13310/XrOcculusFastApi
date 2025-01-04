@@ -1,12 +1,14 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from adb.adb_system import AdbSystem
 import logging
+from decorators import jwt_required
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
 @router.get("/system/battery")
-def battery_info():
+@jwt_required
+async def battery_info(request: Request):
     """Récupère les informations sur la batterie."""
     logger.debug("Entrée dans la fonction battery_info")
     try:
@@ -18,7 +20,8 @@ def battery_info():
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/system/uptime")
-def uptime():
+@jwt_required
+async def uptime(request: Request):
     """Récupère le temps de fonctionnement du périphérique."""
     logger.debug("Entrée dans la fonction uptime")
     try:
@@ -30,7 +33,8 @@ def uptime():
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/system/screen")
-def screen_status():
+@jwt_required
+async def screen_status(request: Request):
     """Récupère l'état de l'écran."""
     logger.debug("Entrée dans la fonction screen_status")
     try:
@@ -42,7 +46,8 @@ def screen_status():
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/system/thermal")
-def thermal_info():
+@jwt_required
+async def thermal_info(request: Request):
     """Récupère les informations thermiques."""
     logger.debug("Entrée dans la fonction thermal_info")
     try:
@@ -54,7 +59,8 @@ def thermal_info():
         raise HTTPException(status_code=500, detail=str(e))
     
 @router.get("/system/cpu")
-def cpu_info():
+@jwt_required
+async def cpu_info(request: Request):
     """Récupère les informations thermiques."""
     logger.debug("Entrée dans la fonction cpu_info")
     try:
@@ -66,7 +72,8 @@ def cpu_info():
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/system/memory")
-def memory_info():
+@jwt_required
+async def memory_info(request: Request):
     """Récupère les informations mémoires."""
     logger.debug("Entrée dans la fonction memory_info")
     try:

@@ -149,4 +149,3 @@ async def unlink_user_from_session(request: Request, session_id: int, user_id: i
     session.users.remove(user)
     db.commit()
     return {"message": "Utilisateur dissocié de la session avec succès"}
-

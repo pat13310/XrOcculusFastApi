@@ -2,7 +2,6 @@ from adb.adb_command_executor import AdbCommandExecutor
 from typing import List, Dict, Any
 import logging
 
-
 logger = logging.getLogger(__name__)
 
 class AdbServer:
@@ -40,7 +39,7 @@ class AdbServer:
     def server_status(cls) -> str:
         try:
             output = AdbCommandExecutor.execute(["version"])
-            return f"{"statut":Serveur ADB actif : {output}}"
+            return f"Serveur ADB actif : {output}"
         except Exception as e:
             logger.warning(f"Statut du serveur ADB inconnu : {str(e)}")
-            return  {"statut":"Serveur ADB inactif"}
+            return "Serveur ADB inactif"
