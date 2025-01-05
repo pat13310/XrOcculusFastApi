@@ -1,12 +1,14 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from adb.adb_services_files import AdbFiles
 import logging
+from decorators import jwt_required
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
-@router.get("/")
-def list_files(path: str = "/sdcard"):
+@router.get("/files/list")
+@jwt_required
+async def list_files(request:Request,path: str = "/sdcard"):
     """Liste les fichiers dans un répertoire donné."""
     logger.debug(f"Entrée dans la fonction list_files avec path={path}")
     try:
@@ -17,8 +19,9 @@ def list_files(path: str = "/sdcard"):
         logger.error(f"Erreur lors de la liste des fichiers: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.post("/pull")
-def pull_file(source: str, destination: str):
+@router.post("/files/pull")
+@jwt_required
+async def pull_file(request:Request,source: str, destination: str):
     """Copie un fichier du périphérique vers le système local."""
     logger.debug(f"Entrée dans la fonction pull_file avec source={source}, destination={destination}")
     try:
@@ -29,8 +32,9 @@ def pull_file(source: str, destination: str):
         logger.error(f"Erreur lors du pull du fichier: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.post("/push")
-def push_file(source: str, destination: str):
+@router.post("/files/push")
+@jwt_required
+async def push_file(request:Request,source: str, destination: str):
     """Copie un fichier du système local vers le périphérique."""
     logger.debug(f"Entrée dans la fonction push_file avec source={source}, destination={destination}")
     try:
@@ -41,8 +45,9 @@ def push_file(source: str, destination: str):
         logger.error(f"Erreur lors du push du fichier: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.delete("/")
-def delete_file(path: str):
+@router.delete("/files/del")
+@jwt_required
+async def delete_file(request:Request,path: str):
     """Supprime un fichier sur le périphérique."""
     logger.debug(f"Entrée dans la fonction delete_file avec path={path}")
     try:
@@ -53,8 +58,9 @@ def delete_file(path: str):
         logger.error(f"Erreur lors de la suppression du fichier: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/details")
-def file_details(path: str):
+@router.get("/files/details")
+@jwt_required
+async def file_details(request:Request,path: str):
     """Obtient les détails d'un fichier sur le périphérique."""
     logger.debug(f"Entrée dans la fonction file_details avec path={path}")
     try:
@@ -65,8 +71,9 @@ def file_details(path: str):
         logger.error(f"Erreur lors de l'obtention des détails du fichier: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.post("/mkdir")
-def create_directory(path: str):
+@router.post("/files/mkdir")
+@jwt_required
+async def create_directory(request:Request,path: str):
     """Crée un répertoire sur le périphérique."""
     logger.debug(f"Entrée dans la fonction create_directory avec path={path}")
     try:
@@ -77,8 +84,9 @@ def create_directory(path: str):
         logger.error(f"Erreur lors de la création du répertoire: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.post("/chmod")
-def change_permissions(path: str, permissions: str):
+@router.post("/files/chmod")
+@jwt_required
+async def change_permissions(request:Request,path: str, permissions: str):
     """Change les permissions d'un fichier sur le périphérique."""
     logger.debug(f"Entrée dans la fonction change_permissions avec path={path}, permissions={permissions}")
     try:

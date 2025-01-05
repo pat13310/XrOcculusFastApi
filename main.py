@@ -17,6 +17,7 @@ from routes.groups import router as group_router
 from routes.session import router as session_router
 from routes.devices import router as device_router
 from routes.system import router as system_router
+from routes.applications import router as application_router
 
 from auth.auth import (
     authenticate_user, 
@@ -113,6 +114,7 @@ app.include_router(group_router, dependencies=[Depends(get_db)])
 app.include_router(session_router, dependencies=[Depends(get_db)])
 app.include_router(device_router, dependencies=[Depends(get_db)])
 app.include_router(system_router, dependencies=[Depends(get_db)])
+app.include_router(application_router, dependencies=[Depends(get_db)])
 
 
 # Route de logout
@@ -153,7 +155,7 @@ async def swagger_ui_html():
     return get_swagger_ui_html(openapi_url="/openapi.json", title="Swagger UI")
 
 # Route de développement pour ReDoc
-@app.get("/dev/redoc", include_in_schema=False)
+@app.get("/dev/doc", include_in_schema=False)
 async def redoc_html():
     return get_redoc_html(openapi_url="/openapi.json", title="ReDoc")
 

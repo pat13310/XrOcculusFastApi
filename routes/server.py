@@ -1,12 +1,14 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from adb.adb_services_server import AdbServer
+from decorators import jwt_required
 import logging
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
-@router.post("/start")
-def start_server():
+@router.post("/server/start")
+@jwt_required
+async def start_server(request:Request):
     """Démarre le serveur ADB."""
     logger.debug("Entrée dans la fonction start_server")
     try:
@@ -17,8 +19,9 @@ def start_server():
         logger.error(f"Erreur lors du démarrage du serveur : {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.post("/stop")
-def stop_server():
+@router.post("/server/stop")
+@jwt_required
+async def stop_server(request:Request):
     """Arrête le serveur ADB."""
     logger.debug("Entrée dans la fonction stop_server")
     try:
@@ -30,7 +33,8 @@ def stop_server():
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/restart")
-def restart_server():
+@jwt_required
+async def restart_server(request:Request):
     """Redémarre le serveur ADB."""
     logger.debug("Entrée dans la fonction restart_server")
     try:
