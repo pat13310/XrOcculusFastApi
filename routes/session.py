@@ -10,7 +10,7 @@ from models.models import Session, User, user_session_association
 from fastapi.security import OAuth2PasswordBearer
 from config import load_config
 import logging
-from decorators import jwt_required
+from decorators import jwt_required, role_required
 
 # Configuration OAuth2
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")

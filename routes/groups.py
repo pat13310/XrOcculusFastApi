@@ -10,7 +10,7 @@ from utils import hash_password, verify_password
 from fastapi.security import OAuth2PasswordBearer
 from config import load_config
 import logging
-from decorators import jwt_required
+from decorators import jwt_required, role_required
 
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
@@ -31,8 +31,9 @@ class GroupOut(BaseModel):
     name: str
 
 
-@router.post("/groups", response_model=GroupOut)
+@router.post("/groups/add", response_model=GroupOut)
 @jwt_required
+@role_required("admin")
 async def add_group( request:Request, group: GroupCreate, db: Session = Depends(get_db)):
     existing_group = db.query(Group).filter(Group.name == group.name).first()
     if existing_group:
@@ -44,7 +45,7 @@ async def add_group( request:Request, group: GroupCreate, db: Session = Depends(
     db.refresh(new_group)
     return new_group
 
-@router.get("/groups", response_model=List[GroupOut])
+@router.get("/groups/list", response_model=List[GroupOut])
 @jwt_required
 async def list_groups(request:Request,  db: Session = Depends(get_db)):
     groups = db.query(Group).all()
@@ -52,6 +53,7 @@ async def list_groups(request:Request,  db: Session = Depends(get_db)):
 
 @router.delete("/groups/delete/{group}")
 @jwt_required
+@role_required("admin")
 async def delete_group(request:Request,group: int, db: Session = Depends(get_db)):
     group = db.query(Group).filter(Group.id == group).first()
     if not group:
@@ -59,3 +61,18 @@ async def delete_group(request:Request,group: int, db: Session = Depends(get_db)
     db.delete(group)
     db.commit()
     return group
+
+@router.put("/groups/update/{group_id}", response_model=GroupOut)
+@jwt_required
+@role_required("admin")
+async def update_group_route(request: Request, group_id: int, group: GroupCreate, db: Session = Depends(get_db)):
+    existing_group = db.query(Group).filter(Group.id == group_id).first()
+    if not existing_group:
+        raise HTTPException(status_code=404, detail="Groupe non trouvé")
+    
+    if group.name:
+        existing_group.name = group.name
+    
+    db.commit()
+    db.refresh(existing_group)
+    return existing_group

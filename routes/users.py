@@ -11,7 +11,7 @@ from config import load_config
 from jose import jwt
 import logging
 from models.models import User
-from decorators import jwt_required
+from decorators import jwt_required, role_required
 
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
@@ -87,8 +87,9 @@ def create_access_token(data: dict, expires_delta: timedelta = timedelta(minutes
     return jwt.encode(to_encode, config.get("SECRET_KEY"), algorithm=config.get("ALGORITHM"))
 
 # --- Routes ---
-@router.post("/users", response_model=UserOut)
+@router.post("/users/add", response_model=UserOut)
 @jwt_required
+@role_required("admin")
 async def add_user(request:Request, user: UserCreate, db: Session = Depends(get_db)):
     existing_user = db.query(User).filter(User.username == user.username).first()
     if existing_user:
@@ -117,7 +118,7 @@ async def add_user(request:Request, user: UserCreate, db: Session = Depends(get_
     return new_user
 
 
-@router.get("/users", response_model=List[UserOut])
+@router.get("/users/list", response_model=List[UserOut])
 @jwt_required
 async def list_users(request:Request,db: Session = Depends(get_db)):
     users = db.query(User).all()
@@ -126,6 +127,7 @@ async def list_users(request:Request,db: Session = Depends(get_db)):
 
 @router.delete("/users/delete/{user_id}")
 @jwt_required
+@role_required("admin")
 async def delete_user(request:Request,user_id: int, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
@@ -138,3 +140,29 @@ async def delete_user(request:Request,user_id: int, db: Session = Depends(get_db
 @router.get("/users/me", response_model=UserOut)
 async def read_users_me(current_user: User = Depends(get_current_user)):
     return current_user
+
+@router.put("/users/update/{user_id}", response_model=UserOut)
+@jwt_required
+@role_required("admin")
+async def update_user_route(request: Request, user_id: int, user: UserCreate, db: Session = Depends(get_db)):
+    existing_user = db.query(User).filter(User.id == user_id).first()
+    if not existing_user:
+        raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
+    
+    if user.username:
+        existing_user.username = user.username
+    if user.email:
+        existing_user.email = user.email
+    if user.full_name:
+        existing_user.full_name = user.full_name
+    if user.password:
+        existing_user.hashed_password = hash_password(user.password)
+    if user.role:
+        existing_user.role = user.role
+    if user.group is not None:
+        existing_user.group = user.group
+    
+    existing_user.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(existing_user)
+    return existing_user

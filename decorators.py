@@ -74,3 +74,18 @@ def jwt_required(func):
         return await func(*args, request=request, **kwargs)
     
     return wrapper
+
+# 📌 Décorateur pour vérifier le rôle de l'utilisateur
+def role_required(required_role: str):
+    def decorator(func):
+        @wraps(func)
+        async def wrapper(*args, request: Request, **kwargs):
+            current_user = request.state.current_user
+            if current_user.role != required_role:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Accès refusé : rôle insuffisant"
+                )
+            return await func(*args, request=request, **kwargs)
+        return wrapper
+    return decorator
