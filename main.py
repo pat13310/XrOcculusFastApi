@@ -18,6 +18,8 @@ from routes.session import router as session_router
 from routes.devices import router as device_router
 from routes.system import router as system_router
 from routes.applications import router as application_router
+from routes.message import router as phone_router
+from routes.screen import router as screen_router
 
 from auth.auth import (
     authenticate_user, 
@@ -115,7 +117,8 @@ app.include_router(session_router, dependencies=[Depends(get_db)])
 app.include_router(device_router, dependencies=[Depends(get_db)])
 app.include_router(system_router, dependencies=[Depends(get_db)])
 app.include_router(application_router, dependencies=[Depends(get_db)])
-
+app.include_router(phone_router, dependencies=[Depends(get_db)])
+app.include_router(screen_router,dependencies=[Depends(get_db)])
 
 # Route de logout
 @app.post("/logout")
