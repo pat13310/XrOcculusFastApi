@@ -10,13 +10,13 @@ router = APIRouter()
 class Screen(BaseModel):
     path: str
     duration: int = 10  # Durée maximale en secondes (par défaut 10 secondes)
-
+    prefix:str="video"
 @router.post("/screen/video/capture")
 async def start_screen_capture(screen: Screen):
     """Démarre la capture vidéo de l'écran."""
     try:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        path_with_timestamp = f"{screen.path}_{timestamp}.mp4"
+        path_with_timestamp = f"{screen.path}{screen.prefix}_{timestamp}.mp4"
         
         command = [
             "shell", "screenrecord", "--time-limit", str(screen.duration), path_with_timestamp
