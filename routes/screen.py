@@ -1,4 +1,5 @@
 import subprocess
+from datetime import datetime
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
@@ -7,24 +8,36 @@ from adb.adb_command_executor import AdbCommandExecutor
 router = APIRouter()
 
 class Screen(BaseModel):
-    path: str 
+    path: str
+    duration: int = 10  # Durée maximale en secondes (par défaut 10 secondes)
 
 @router.post("/screen/video/capture")
 async def start_screen_capture(screen: Screen):
     """Démarre la capture vidéo de l'écran."""
     try:
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        path_with_timestamp = f"{screen.path}_{timestamp}.mp4"
+        
         command = [
-            "shell", "screenrecord", screen.path
+            "shell", "screenrecord", "--time-limit", str(screen.duration), path_with_timestamp
         ]
 
         # Exécuter la commande adb
         result = AdbCommandExecutor.execute(command)
 
+        # Vérifiez si la commande a échoué en raison de la résolution
+        if "unable to configure video/avc codec" in result:
+            # Réessayez avec une résolution plus basse
+            command = [
+                "shell", "screenrecord", "--size", "720x1280", "--time-limit", str(screen.duration), path_with_timestamp
+            ]
+            result = AdbCommandExecutor.execute(command)
+
         return {
             "status": "success",
             "message": "Capture vidéo démarrée avec succès",
             "details": {
-                "path": screen.path,
+                "path": path_with_timestamp,
                 "result": result
             }
         }
@@ -39,7 +52,7 @@ async def stop_screen_capture():
     """Arrête la capture vidéo de l'écran."""
     try:
         command = [
-            "shell", "pkill", "screenrecord"
+            "shell", "killall", "screenrecord"
         ]
 
         # Exécuter la commande adb
@@ -58,13 +71,17 @@ async def stop_screen_capture():
 
 class ImageCapture(BaseModel):
     path: str
+    prefix:str="image"
 
 @router.post("/screen/image/capture")
 async def capture_image(screen: ImageCapture):
     """Capture une image de l'écran."""
     try:
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        path_with_timestamp = f"{screen.path}{screen.prefix}_{timestamp}.png"
+        
         command = [
-            "shell", "screencap", screen.path
+            "shell", "screencap", path_with_timestamp
         ]
 
         # Exécuter la commande adb
@@ -74,7 +91,7 @@ async def capture_image(screen: ImageCapture):
             "status": "success",
             "message": "Capture d'image réussie",
             "details": {
-                "path": screen.path,
+                "path": path_with_timestamp,
                 "result": result
             }
         }
