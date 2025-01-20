@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flux Vidéo Android avec FastAPI</title>
+    <style>
+        /* ✅ Styles Généraux */
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f9;
+        }
+
+        h1 {
+            margin-top: 20px;
+            color: #333;
+        }
+
+        /* ✅ Zone du Flux Vidéo */
+        #videoContainer {
+            margin: 20px auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #videoFeed {
+            width: 320px;
+            height: auto;
+            border: 2px solid #444;
+            background: #000;
+        }
+
+        /* ✅ Contrôles du Flux */
+        .controls {
+            margin-top: 20px;
+        }
+
+        .controls button {
+            margin: 5px;
+            padding: 10px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .controls button.start {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .controls button.start:hover {
+            background-color: #218838;
+        }
+
+        .controls button.stop {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .controls button.stop:hover {
+            background-color: #c82333;
+        }
+
+        .controls button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <h1>📱 Flux Vidéo Android avec FastAPI</h1>
+
+    <!-- ✅ Zone du Flux Vidéo -->
+    <div id="videoContainer">
+        <img id="videoFeed" src="" alt="Flux Vidéo Android">
+    </div>
+
+    <!-- ✅ Contrôles du Flux Vidéo -->
+    <div class="controls">
+        <button class="start" id="startButton" onclick="startStream()">▶️ Démarrer</button>
+        <button class="stop" id="stopButton" onclick="stopStream()" disabled>⏹️ Arrêter</button>
+    </div>
+
+    <script>
+        const videoFeed = document.getElementById('videoFeed');
+        const startButton = document.getElementById('startButton');
+        const stopButton = document.getElementById('stopButton');
+
+        let streamingInterval = null;
+
+        /**
+         * ▶️ Démarrer le Flux Vidéo
+         */
+        async function startStream() {
+            try {
+                startButton.disabled = true;
+                stopButton.disabled = false;
+
+                const response = await fetch('http://localhost:8000/screen/video/stream/start', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    mode: 'cors'
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Erreur lors du démarrage du streaming : ${response.statusText}`);
+                }
+
+                // Définir le src pour rafraîchir le flux d'images
+                videoFeed.src = `http://localhost:8000/screen/video/stream?ts=${Date.now()}`;
+
+                // Rafraîchir l'image toutes les 100ms pour une impression de flux
+                streamingInterval = setInterval(() => {
+                    videoFeed.src = `http://localhost:8000/screen/video/stream?ts=${Date.now()}`;
+                }, 100);
+            } catch (error) {
+                console.error('❌ Erreur au démarrage du flux :', error);
+                alert('Erreur au démarrage du flux : ' + error.message);
+                startButton.disabled = false;
+                stopButton.disabled = true;
+            }
+        }
+
+        /**
+         * ⏹️ Arrêter le Flux Vidéo
+         */
+        async function stopStream() {
+            try {
+                stopButton.disabled = true;
+                startButton.disabled = false;
+
+                const response = await fetch('http://localhost:8000/screen/video/stream/stop', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    mode: 'cors'
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Erreur lors de l'arrêt du streaming : ${response.statusText}`);
+                }
+
+                // Arrêter le rafraîchissement du flux
+                clearInterval(streamingInterval);
+                videoFeed.src = '';
+            } catch (error) {
+                console.error('❌ Erreur à l\'arrêt du flux :', error);
+                alert('Erreur à l\'arrêt du flux : ' + error.message);
+                stopButton.disabled = false;
+                startButton.disabled = true;
+            }
+        }
+    </script>
+</body>
+</html>

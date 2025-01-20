@@ -1,117 +1,60 @@
-from datetime import datetime, timedelta
-from jose import JWTError, jwt
-from passlib.context import CryptContext
-from typing import Optional, Dict, Union
-from pydantic import BaseModel
+from typing import Optional
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from models.models import User  # Supprimer UserInDB
+from supabase import Client
+from config import settings
 import logging
-import os
-from sqlalchemy.orm import Session
-from database import SessionLocal  # Importer la session de la base de données
-from config import load_config
+
 # Configuration du logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-config=load_config()
-
-SECRET_KEY = config.get('SECRET_KEY')
-ALGORITHM = config.get('ALGORITHM')
-ACCESS_TOKEN_EXPIRE_MINUTES = config.get('ACCESS_TOKEN_EXPIRE_MINUTES')
-
-# Hachage du mot de passe avec des paramètres plus robustes
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto", bcrypt__default_rounds=12)
-
+config = settings.load_config()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Vérifier le mot de passe avec des logs de débogage"""
+async def authenticate_user(supabase: Client, email: str, password: str):
+    """Authentifier un utilisateur avec Supabase Auth"""
     try:
-        result = pwd_context.verify(plain_password, hashed_password)
-        if not result:
-            logger.warning(f"Échec de la vérification du mot de passe")
-        return result
+        response = supabase.auth.sign_in_with_password({
+            "email": email,
+            "password": password
+        })
+        
+        if response.user:
+            logger.info(f"Authentification réussie pour : {email}")
+            return response.user
+        else:
+            logger.warning(f"Échec de l'authentification pour : {email}")
+            return None
+            
     except Exception as e:
-        logger.error(f"Erreur lors de la vérification du mot de passe : {e}")
-        return False
+        logger.error(f"Erreur d'authentification : {e}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Identifiants invalides"
+        )
 
-def get_password_hash(password: str) -> str:
-    """Générer un hachage de mot de passe sécurisé"""
-    return pwd_context.hash(password)
-
-def get_user(db: Session, username: Union[str, None] = None, email: Union[str, None] = None) -> Union[User, None]:
-    """Rechercher un utilisateur par username ou email"""
-    if username:
-        return db.query(User).filter(User.username == username).first()
-    
-    if email:
-        return db.query(User).filter(User.email == email).first()
-    
-    return None
-
-def authenticate_user(db: Session, username: str, password: str) -> Union[User, bool]:
-    """Authentifier un utilisateur avec des vérifications améliorées"""
-    # Essayer d'abord avec l'email, puis avec le username
-    user = get_user(db, email=username) or get_user(db, username=username)
-    
-    if not user:
-        logger.warning(f"Utilisateur non trouvé : {username}")
-        return False
-    
-    if not verify_password(password, user.hashed_password):
-        logger.warning(f"Mot de passe incorrect pour : {username}")
-        return False
-    
-    logger.info(f"Authentification réussie pour : {username}")
-    return user
-
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
-    """Créer un token d'accès JWT"""
-    to_encode = data.copy()
-    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=15))
-    to_encode.update({"exp": expire})
-    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-class TokenData(BaseModel):
-    username: Optional[str] = None
-def get_db():
-    """Obtenir une session de base de données"""
-    db = SessionLocal()
+async def get_current_user(token: str = Depends(oauth2_scheme), supabase: Client = Depends(get_db)):
+    """Obtenir l'utilisateur courant à partir du token Supabase"""
     try:
-        yield db
-    finally:
-        db.close()
-
-async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
-    """Obtenir l'utilisateur courant à partir du token"""
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
-        if username is None:
+        # Vérifier le token avec Supabase
+        user = supabase.auth.get_user(token)
+        if not user:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Token invalide",
                 headers={"WWW-Authenticate": "Bearer"}
             )
-        token_data = TokenData(username=username)
-    except JWTError:
+        return user
+    except Exception as e:
+        logger.error(f"Erreur de vérification du token : {e}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token invalide",
             headers={"WWW-Authenticate": "Bearer"}
         )
-    
-    user = get_user(db, username=token_data.username)
-    if user is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Utilisateur introuvable",
-            headers={"WWW-Authenticate": "Bearer"}
-        )
-    return user
 
-async def get_current_active_user(current_user: User = Depends(get_current_user)):
+async def get_current_active_user(current_user = Depends(get_current_user)):
     """Vérifier si l'utilisateur est actif"""
     if current_user.disabled:
         raise HTTPException(status_code=400, detail="Utilisateur inactif")

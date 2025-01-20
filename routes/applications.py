@@ -28,14 +28,36 @@ async def uninstall_application(request:Request,package_name: str):
     logger.debug(f"Résultat de la désinstallation: {result}")
     return result
 
-@router.get("/app/list")
+@router.get("/app/list/shop")
 @jwt_required
-async def list_installed_applications(request:Request):
-    """Liste toutes les applications installées sur le périphérique."""
+async def list_applications(request:Request):
+    """Liste toutes les applications installées et non installées dans la boutique."""
     logger.debug("Entrée dans la fonction list_installed_applications")
     apps = AdbApplications.list_installed()
     logger.debug(f"Applications installées: {apps}")
     return apps
+
+@router.get("/app/list/used")
+@jwt_required
+async def list_used_applications(request:Request):
+    """
+    Liste toutes les applications utilisées sur le périphérique, 
+    incluant les applications système.
+    """
+    logger.debug("Entrée dans la fonction list_used_applications")
+    apps = AdbApplications.list_installed()
+    logger.debug(f"Applications installées: {apps}")
+    return apps
+
+@router.get("/app/list/uninstalled")
+@jwt_required
+async def list_uninstalled_applications(request:Request):
+    """Liste toutes les applications disponibles(non installées)  sur le périphérique."""
+    logger.debug("Entrée dans la fonction list_installed_applications")
+    apps = AdbApplications.list_installed()
+    logger.debug(f"Applications installées: {apps}")
+    return apps
+
 
 @router.get("/app/info")
 @jwt_required

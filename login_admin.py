@@ -17,18 +17,18 @@ if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE:
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE)
 
 # Ajouter un utilisateur
-def signup_user(email: str, password: str):
+def signin_user(email: str, password: str):
     try:
         # Appeler la méthode de création d'utilisateur
-        response = supabase.auth.sign_up({"email": email, "password": password})
-        print("User created successfully:", response)
+        response = supabase.auth.sign_in_with_password({"email": email, "password": password})
+        print("User logged successfully:", response)
         return response
     except Exception as e:
-        print("Error during signup:", e)
+        print("Error during loggin:", e)
         return None
 
 # Exemple d'appel
 if __name__ == "__main__":
-    email = "demo2@example.com"  # Remplacez par une adresse e-mail valide
-    password = "demo123"  # Remplacez par un mot de passe sécurisé
-    new_user = signup_user(email, password)
+    email = "admin5@mydomain.com"  # Remplacez par une adresse e-mail valide
+    password = "securepassword123"  # Remplacez par un mot de passe sécurisé
+    new_user = signin_user(email, password)

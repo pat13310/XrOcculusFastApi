@@ -2,12 +2,10 @@ from functools import wraps
 from fastapi import HTTPException, Request, status
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
-from config import load_config
-from models.models import User
-from database import SessionLocal
+from config import Settings
 
 # Charger la configuration
-config = load_config()
+config = Settings.load_config()
 
 SECRET_KEY = config.get('SECRET_KEY')
 ALGORITHM = config.get('ALGORITHM')

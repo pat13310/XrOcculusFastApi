@@ -1,56 +1,40 @@
 import os
+from supabase import create_client, Client
+from config import settings
 import logging
-from contextlib import contextmanager
-from sqlalchemy import create_engine, Column, String, Boolean
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, Session
+from typing import Optional
 
 # Configuration du logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger(__name__)
 
-# Utiliser une variable d'environnement avec une valeur par défaut
-DATABASE_URL = os.getenv('DATABASE_URL', "sqlite:///./app.db")
+from dotenv import load_dotenv
 
-# Configuration robuste de l'engine
-engine = create_engine(
-    DATABASE_URL, 
-    connect_args={"check_same_thread": False},
-    pool_size=10,  # Nombre maximal de connexions dans le pool
-    max_overflow=20,  # Nombre de connexions supplémentaires autorisées
-    echo=False  # Activer pour le débogage SQL
-)
+# Charger les variables d'environnement
+load_dotenv()
 
-# Création de la session
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+# Configuration Supabase
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_SERVICE_ROLE = os.getenv("SUPABASE_SERVICE_ROLE")  # Utiliser la clé de rôle de service
 
-# Base pour les modèles
-Base = declarative_base()
+# Initialisation du client Supabase
+supabase: Optional[Client] = None
 
-@contextmanager
-def get_db_session() -> Session:
-    """Gestionnaire de contexte pour les sessions de base de données"""
-    session = SessionLocal()
-    try:
-        yield session
-        session.commit()
-    except Exception as e:
-        session.rollback()
-        logger.error(f"Erreur de transaction de base de données : {e}")
-        raise
-    finally:
-        session.close()
+def init_supabase() -> Client:
+    """Initialise et retourne le client Supabase"""
+    global supabase
+    if supabase is None:
+        try:
+            supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE)
+            logger.info("Connexion à Supabase établie avec succès")
+        except Exception as e:
+            logger.error(f"Échec de la connexion à Supabase : {e}")
+            raise
+    return supabase
 
-def get_db():
-    """Générateur de session pour les dépendances FastAPI"""
-    with get_db_session() as db:
-        yield db
-
-def init_db():
-    """Initialiser la base de données"""
-    try:
-        Base.metadata.create_all(bind=engine)
-        logger.info("Base de données initialisée avec succès")
-    except Exception as e:
-        logger.error(f"Erreur lors de l'initialisation de la base de données : {e}")
-        raise
+def get_db() -> Client:
+    """Retourne le client Supabase pour les dépendances FastAPI"""
+    return init_supabase()

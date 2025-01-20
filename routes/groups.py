@@ -5,10 +5,9 @@ from datetime import datetime, timedelta
 from typing import Optional, List
 from pydantic import BaseModel
 from database import get_db
-from models.models import Group
 from utils import hash_password, verify_password
 from fastapi.security import OAuth2PasswordBearer
-from config import load_config
+from config import Settings
 import logging
 from decorators import jwt_required, role_required
 
@@ -18,7 +17,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 logger = logging.getLogger(__name__)
 
-config=load_config()
+config=Settings.load_config()
 
 router = APIRouter()
 
@@ -32,8 +31,6 @@ class GroupOut(BaseModel):
 
 
 @router.post("/groups/add", response_model=GroupOut)
-@jwt_required
-@role_required("admin")
 async def add_group( request:Request, group: GroupCreate, db: Session = Depends(get_db)):
     existing_group = db.query(Group).filter(Group.name == group.name).first()
     if existing_group:
