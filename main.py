@@ -104,13 +104,7 @@ async def login(request: Request, db = Depends(get_db)):
                     detail="Identifiants invalides"
                 )
             
-            # Créer un token JWT
-            access_token_expires = timedelta(minutes=config.get("ACCESS_TOKEN_EXPIRE_MINUTES", 30))
-            access_token = create_access_token(
-                data={"sub": email}, 
-                expires_delta=access_token_expires
-            )
-            
+           
             # Préparer les informations utilisateur
             user_data = {
                 "email": response.user.email,
@@ -121,7 +115,7 @@ async def login(request: Request, db = Depends(get_db)):
             logger.info(f"Connexion réussie pour {email}")
             
             return {
-                "access_token": access_token,
+                "access_token": response.session.access_token,
                 "token_type": "bearer",
                 "user": user_data
             }
