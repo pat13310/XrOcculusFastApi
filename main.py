@@ -51,7 +51,7 @@ app.add_middleware(
 
 # Inclure les routeurs
 app.include_router(user_router, dependencies=[Depends(get_db)])
-#app.include_router(group_router, dependencies=[Depends(get_db)])
+app.include_router(group_router, dependencies=[Depends(get_db)])
 #app.include_router(session_router, dependencies=[Depends(get_db)])
 #app.include_router(device_router, dependencies=[Depends(get_db)])
 #app.include_router(system_router, dependencies=[Depends(get_db)])
@@ -66,10 +66,15 @@ class LoginRequest(BaseModel):
     password: str
 
 def get_user(db, username: str):
-    result = db.table("users").select("*").eq("email", username).execute()
-    if result.data:
-        return result.data[0]
-    return None
+    try:
+        # Vérifier si la table auth.users existe
+        result = db.table("auth.users").select("*").eq("email", username).execute()
+        if result.data:
+            return result.data[0]
+        return None
+    except Exception as e:
+        logger.error(f"Erreur lors de la récupération de l'utilisateur: {str(e)}")
+        return None
 
 # Route de login
 @app.post("/auth/login")
@@ -167,6 +172,33 @@ async def get_current_active_user(current_user = Depends(get_current_user)):
 async def logout(token: str = Depends(oauth2_scheme)):
     blacklist.add(token)
     return {"message": "Déconnexion réussie"}
+
+# Route de mot de passe oublié
+@app.post("/auth/forgot-password")
+async def forgot_password(request: Request, db = Depends(get_db)):
+    body = await request.json()
+    email = body.get('email')
+    
+    if not email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email requis"
+        )
+    
+    try:
+        logger.info(f"Envoi d'email de réinitialisation pour: {email}")
+        db.auth.reset_password_for_email(email)
+        return {
+            "message": "Si l'email existe dans notre système, vous recevrez un email de réinitialisation",
+            "email": email
+        }
+    except Exception as error:
+        logger.error(f"Erreur lors de l'envoi d'email: {str(error)}")
+        # On retourne quand même un succès pour ne pas révéler si l'email existe
+        return {
+            "message": "Si l'email existe dans notre système, vous recevrez un email de réinitialisation",
+            "email": email
+        }
 
 # Route racine
 @app.get("/")

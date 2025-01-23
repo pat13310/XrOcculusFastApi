@@ -1,9 +1,10 @@
 from typing import Optional
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer
 from supabase import Client
 from config import settings
 import logging
+from datetime import datetime
 
 # Configuration du logging
 logging.basicConfig(level=logging.INFO)
@@ -34,11 +35,29 @@ async def authenticate_user(supabase: Client, email: str, password: str):
             detail="Identifiants invalides"
         )
 
-async def get_current_user(token: str = Depends(oauth2_scheme), supabase: Client = Depends(get_db)):
+async def get_current_user(request: Request, token: str = Depends(oauth2_scheme), supabase: Client = Depends(get_db)):
     """Obtenir l'utilisateur courant à partir du token Supabase"""
     try:
-        # Vérifier le token avec Supabase
+        # Vérifier si le token existe dans le localStorage
+        if not token:
+            token = request.cookies.get("sb-access-token")
+            if not token:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Token manquant",
+                    headers={"WWW-Authenticate": "Bearer"}
+                )
+
+        # Vérifier la date d'expiration du token
         user = supabase.auth.get_user(token)
+        if user and user.expires_at:
+            expiration_date = datetime.fromtimestamp(user.expires_at)
+            if datetime.now() > expiration_date:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Token expiré",
+                    headers={"WWW-Authenticate": "Bearer"}
+                )
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -58,4 +77,3 @@ async def get_current_active_user(current_user = Depends(get_current_user)):
     """Vérifier si l'utilisateur est actif"""
     if current_user.disabled:
         raise HTTPException(status_code=400, detail="Utilisateur inactif")
-    return current_user
