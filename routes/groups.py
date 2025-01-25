@@ -1,7 +1,6 @@
 import os
 from fastapi import APIRouter, Depends, HTTPException, Request
 from supabase import Client
-from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 from typing import Optional, List
 from pydantic import BaseModel

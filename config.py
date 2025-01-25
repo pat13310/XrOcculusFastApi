@@ -16,7 +16,6 @@ class Settings(BaseSettings):
 
     class DatabaseSettings(BaseSettings):
         URL: str = "postgresql+asyncpg://postgres:your_password@db.wfbcqtwdsapqmztgcpcn.supabase.co:5432/postgres"
-        TEST_URL: str = "sqlite:///:memory:"
         TEST_MODE: bool = False
 
     DATABASE: DatabaseSettings = DatabaseSettings()

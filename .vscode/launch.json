@@ -1,6 +1,25 @@
 {
     "version": "0.2.0",
     "configurations": [
+        
+        {
+            "name": "Python: FastAPI2",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/main.py",
+            "args": [
+                "run",
+                "main:app",
+                "--reload"
+            ],
+            "jinja": true,
+            "logToFile": true,
+            "redirectOutput": true,
+            "justMyCode": false,
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            }
+        },
         {
             "name": "Python: FastAPI",
             "type": "debugpy",
@@ -11,7 +30,13 @@
                 "main:app",
                 "--reload"
             ],
-            "jinja": true
+            "jinja": true,
+            "logToFile": true,
+            "redirectOutput": true,
+            "justMyCode": false,
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            }
         }
     ]
 }

@@ -1,9 +1,8 @@
 import os
-from supabase import create_client, Client
+from supabase import Client
 from config import settings
 import logging
 from typing import Optional
-
 # Configuration du logging
 logging.basicConfig(
     level=logging.INFO,
@@ -28,7 +27,7 @@ def init_supabase() -> Client:
     global supabase
     if supabase is None:
         try:
-            supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE)
+            supabase = Client(SUPABASE_URL, SUPABASE_SERVICE_ROLE)
             logger.info("Connexion à Supabase établie avec succès")
         except Exception as e:
             logger.error(f"Échec de la connexion à Supabase : {e}")

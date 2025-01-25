@@ -1,13 +1,12 @@
 import json
 import logging
 from fastapi import Depends, FastAPI, HTTPException, status, Request
-from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel
 from jose import JWTError, jwt
 from datetime import datetime, timedelta
-from supabase import create_client
+from supabase import Client
 from typing import Optional
 from config import Settings
 from fastapi.middleware.cors import CORSMiddleware
@@ -109,7 +108,7 @@ async def login(request: Request, db = Depends(get_db)):
                     detail="Identifiants invalides"
                 )
             
-           
+            
             # Préparer les informations utilisateur
             user_data = {
                 "email": response.user.email,
@@ -205,9 +204,9 @@ async def forgot_password(request: Request, db = Depends(get_db)):
 async def read_root():
     return {
         "message": "Bienvenue sur l'API XrOcculus FastAPI avec supabase",
-        "version": config.get("version", "1.0.1"),
-        "date_de_creation": "2025-01-15",
-        "auteur": "Xen"
+        "version": config.get("version", "1.0.2"),
+        "date_de_creation": "2025-01-25",
+        "auteur": "XenDev"
     }
 
 # Route de santé
@@ -255,4 +254,8 @@ if __name__ == '__main__':
     import uvicorn
     logger.info("Démarrage du serveur FastAPI")
     logger.debug(f"Host: {config.get('host', '0.0.0.0')}, Port: {config.get('port', 8000)}, Reload: {config.get('reload', True)}")
-    uvicorn.run("main:app", host=config.get("host", "0.0.0.0"), port=config.get("port", 8000), reload=config.get("reload", True))
+    uvicorn.run("main:app", 
+                host=config.get("host", "0.0.0.0"), 
+                port=config.get("port", 8000), 
+                reload=config.get("reload", True),
+                log_level="debug")
