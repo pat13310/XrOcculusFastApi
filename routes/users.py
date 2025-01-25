@@ -149,21 +149,44 @@ async def delete_user(request: Request, user_id: str, db: Client = Depends(get_d
         logger.error(f"Erreur lors de la suppression de l'utilisateur: {str(e)}")
         return {"error": "Utilisateur non trouvé avec l'ID fourni"}
 
-@router.put("/users/update/{user_id}")
-async def update_user_route(request: Request, user_id: str, db: Client = Depends(get_db)):
-    user = await request.json()
-    existing_user = db.table('users').select('*').eq('id', user_id).execute()
-    if not existing_user.data:
-        raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
-    
-    updates = {}
-    if 'username' in user: updates['username'] = user['username']
-    if 'email' in user: updates['email'] = user['email']
-    if 'full_name' in user: updates['full_name'] = user['full_name']
-    if 'password' in user: updates['password'] = user['password']
-    if 'role' in user: updates['role'] = user['role']
-    if 'group' in user: updates['group'] = user['group']
-    updates['updated_at'] = datetime.utcnow().isoformat()
-    
-    response = db.table('users').update(updates).eq('id', user_id).execute()
-    return response.data[0]
+
+@router.put("/users/profile/{user_id}")
+async def update_user_profile(request: Request, user_id: str, db: Client = Depends(get_db)):
+    """Met à jour les informations publiques du profil utilisateur"""
+    try:
+        # Validation de l'UUID
+        uuid.UUID(user_id)
+        
+        # Récupération des données de mise à jour
+        profile_data = await request.json()
+        
+        # Vérification de l'existence du profil
+        existing_profile = db.table('profiles').select('*').eq('id', user_id).execute()
+        if not existing_profile.data:
+            raise HTTPException(status_code=404, detail="Profil non trouvé")
+            
+        # Mise à jour des champs autorisés
+        updates = {}
+        if 'address' in profile_data: updates['address'] = profile_data['address']
+        if 'postal_code' in profile_data: updates['postal_code'] = profile_data['postal_code']
+        if 'city' in profile_data: updates['city'] = profile_data['city']
+        if 'country' in profile_data: updates['country'] = profile_data['country']
+        if 'role' in profile_data: updates['role'] = profile_data['role']
+        if 'phone' in profile_data: updates['phone'] = profile_data['phone']
+        if 'birthday' in profile_data: updates['birthday'] = profile_data['birthday']
+        
+        if not updates:
+            return {"message": "Aucune mise à jour nécessaire"}
+            
+        # Exécution de la mise à jour
+        response = db.table('profiles').update(updates).eq('id', user_id).execute()
+        
+        if response.data:
+            return response.data[0]
+        raise HTTPException(status_code=400, detail="Erreur lors de la mise à jour du profil")
+        
+    except ValueError:
+        raise HTTPException(status_code=400, detail="ID utilisateur invalide")
+    except Exception as e:
+        logger.error(f"Erreur mise à jour profil: {str(e)}")
+        raise HTTPException(status_code=500, detail="Erreur serveur lors de la mise à jour")

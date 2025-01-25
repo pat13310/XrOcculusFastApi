@@ -1,100 +1,111 @@
-import os
-from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import JSONResponse
-from sqlalchemy.orm import Session
-from datetime import datetime, timedelta
-from typing import Optional, List
-from pydantic import BaseModel
-from database import get_db
-from fastapi.security import OAuth2PasswordBearer
-from config import Settings
+from fastapi import APIRouter, Depends, HTTPException
+from datetime import datetime
 import logging
-from decorators import jwt_required, role_required
+from supabase import Client
+from database import get_db
+import uuid
 
-# Configuration OAuth2
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
-
-# Charger la configuration depuis un fichier externe
-config = Settings.load_config()
-
-# Configurer le logger
 logger = logging.getLogger(__name__)
 
-# Initialiser le routeur FastAPI
-router = APIRouter()
+router = APIRouter(prefix="/sessions", tags=["sessions"])
 
-# Route pour ajouter une nouvelle session
-@router.post("/sessions/add")
-async def add_session(request: Request, db: Session = Depends(get_db)):
-    existing_session = None
-    if existing_session:
-        raise HTTPException(status_code=400, detail="Session déjà définie")
+# --- Fonctions Utilitaires ---
+def get_session(session_id: str, db: Client = Depends(get_db)):
+    """Récupère une session par son ID"""
+    response = db.table('sessions').select('*').eq('id', session_id).execute()
+    return response.data[0] if response.data else None
 
-    
-    return None
+# --- Routes ---
+@router.post("sessions/add")
+async def create_session(session_data: dict, db: Client = Depends(get_db)):
+    """Crée une nouvelle session"""
+    try:
+        # Validation des données
+        required_fields = ['name', 'start_time', 'end_time']
+        if not all(field in session_data for field in required_fields):
+            raise HTTPException(
+                status_code=400,
+                detail=f"Les champs suivants sont requis: {', '.join(required_fields)}"
+            )
 
-# Route pour lister toutes les sessions
-@router.get("/sessions/list")
-async def list_sessions(request: Request, db: Session = Depends(get_db)):
-    return None
+        # Création de la session
+        session_data['id'] = str(uuid.uuid4())
+        session_data['created_at'] = datetime.utcnow().isoformat()
+        
+        response = db.table('sessions').insert(session_data).execute()
+        
+        if response.data:
+            return response.data[0]
+        raise HTTPException(status_code=400, detail="Erreur lors de la création de la session")
+    except Exception as e:
+        logger.error(f"Erreur création session: {str(e)}")
+        raise HTTPException(status_code=500, detail="Erreur serveur lors de la création de la session")
 
-# Route pour supprimer une session par ID
-@router.delete("/sessions/delete/{session_id}")
-async def delete_session(request: Request, session_id: int, db: Session = Depends(get_db)):
-    session = None
-    if not session:
-        return {"error": "Session non trouvée"}
-    return session
+@router.get("sessions/list")
+async def get_sessions(db: Client = Depends(get_db)):
+    """Récupère toutes les sessions"""
+    try:
+        response = db.table('sessions').select('*').execute()
+        return response.data
+    except Exception as e:
+        logger.error(f"Erreur récupération sessions: {str(e)}")
+        raise HTTPException(status_code=500, detail="Erreur serveur lors de la récupération des sessions")
 
-# Route pour arrêter une session par ID
-@router.get("/sessions/stop/{session_id}")
-async def stop_session(request: Request, session_id: int, db: Session = Depends(get_db)):
-    session = None
-    return session
+@router.get("sessions/{session_id}")
+async def get_session_by_id(session_id: str, db: Client = Depends(get_db)):
+    """Récupère une session par son ID"""
+    try:
+        # Validation de l'UUID
+        uuid.UUID(session_id)
+        
+        session = get_session(session_id, db)
+        if not session:
+            raise HTTPException(status_code=404, detail="Session non trouvée")
+            
+        return session
+    except ValueError:
+        raise HTTPException(status_code=400, detail="ID session invalide")
+    except Exception as e:
+        logger.error(f"Erreur recherche session: {str(e)}")
+        raise HTTPException(status_code=500, detail="Erreur serveur lors de la recherche")
 
-# Route pour démarrer une session par ID
-@router.get("/sessions/start/{session_id}")
-async def start_session(request: Request, session_id: int, db: Session = Depends(get_db)):
-    session =None
-    if not session:
-        raise HTTPException(status_code=400, detail="Session non trouvée")
-    
-    if session.state == "active":
-        raise HTTPException(status_code=400, detail="La session est déjà active")
+@router.put("sessions/update/{session_id}")
+async def update_session(session_id: str, updates: dict, db: Client = Depends(get_db)):
+    """Met à jour une session existante"""
+    try:
+        # Validation de l'UUID
+        uuid.UUID(session_id)
+        
+        # Vérification de l'existence de la session
+        existing_session = get_session(session_id, db)
+        if not existing_session:
+            raise HTTPException(status_code=404, detail="Session non trouvée")
+            
+        # Mise à jour
+        updates['updated_at'] = datetime.utcnow().isoformat()
+        response = db.table('sessions').update(updates).eq('id', session_id).execute()
+        
+        if response.data:
+            return response.data[0]
+        raise HTTPException(status_code=400, detail="Erreur lors de la mise à jour de la session")
+    except ValueError:
+        raise HTTPException(status_code=400, detail="ID session invalide")
+    except Exception as e:
+        logger.error(f"Erreur mise à jour session: {str(e)}")
+        raise HTTPException(status_code=500, detail="Erreur serveur lors de la mise à jour")
 
-    session.state = "active"
-    return session
-
-# Route pour associer un utilisateur à une session
-@router.post("/sessions/{session_id}/link/{user_id}")
-async def add_user_to_session(request: Request, session_id: int, user_id: int, db: Session = Depends(get_db)):
-    session =None
-    if user_id == -1 or user_id==0:
-        raise HTTPException(status_code=400, detail="ID utilisateur invalide")
-    if not session:
-        raise HTTPException(status_code=400, detail="Session non trouvée")
-
-    user = None
-    if not user:
-        raise HTTPException(status_code=400, detail="Utilisateur non trouvé")
-
-    if user in session.users:
-        raise HTTPException(status_code=400, detail="Utilisateur déjà associé à la session")
-
-    return {"message": "Utilisateur ajouté à la session avec succès"}
-
-# Route pour dissocier un utilisateur d'une session
-@router.delete("/sessions/{session_id}/unlink/{user_id}")
-async def unlink_user_from_session(request: Request, session_id: int, user_id: int, db: Session = Depends(get_db)):
-    session = None
-    if not session:
-        raise HTTPException(status_code=400, detail="Session non trouvée")
-
-    user = None
-    if not user:
-        raise HTTPException(status_code=400, detail="Utilisateur non trouvé")
-
-    if user not in session.users:
-        raise HTTPException(status_code=400, detail="Utilisateur non associé à la session")
-
-    return {"message": "Utilisateur dissocié de la session avec succès"}
+@router.delete("sessions/delete/{session_id}")
+async def delete_session(session_id: str, db: Client = Depends(get_db)):
+    """Supprime une session"""
+    try:
+        # Validation de l'UUID
+        uuid.UUID(session_id)
+        
+        # Suppression
+        db.table('sessions').delete().eq('id', session_id).execute()
+        return {"message": f"Session {session_id} supprimée avec succès"}
+    except ValueError:
+        raise HTTPException(status_code=400, detail="ID session invalide")
+    except Exception as e:
+        logger.error(f"Erreur suppression session: {str(e)}")
+        raise HTTPException(status_code=500, detail="Erreur serveur lors de la suppression")
