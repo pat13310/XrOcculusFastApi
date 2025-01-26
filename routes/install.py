@@ -1,6 +1,6 @@
 import subprocess
 from fastapi import APIRouter, HTTPException
-from utils import download_adb
+from tests.utils import download_adb
 
 router = APIRouter()
 

@@ -51,10 +51,17 @@ async def list_groups(request: Request, db: Client = Depends(init_supabase)):
 @router.delete("/groups/delete/{group_id}")
 @jwt_required
 async def delete_group(request: Request, group_id: str, db: Client = Depends(init_supabase)):
-    data, _ = db.table('groups').delete().eq('id', group_id).execute()
-    if len(data[1]) == 0 :
-        return {"error": "Groupe non trouvé"}
-    return {"message": "Groupe {data[1][0].name} supprimé avec succès"}
+    # Récupérer le groupe avant suppression
+    group_data, _ = db.table('groups').select('name').eq('id', group_id).execute()
+    if len(group_data[1]) == 0:
+        return {"status":"error",
+            "details": "Groupe non trouvé"}
+    
+    group_name = group_data[1][0]['name']
+    
+    # Supprimer le groupe
+    db.table('groups').delete().eq('id', group_id).execute()    
+    return {"status":"success","details": f"Groupe {group_name} supprimé avec succès"}
 
 @router.put("/groups/update/{group_id}", response_model=GroupOut)
 @jwt_required
