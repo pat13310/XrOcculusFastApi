@@ -15,6 +15,19 @@ def get_user(username: str, db: Client = Depends(get_db)):
     response = db.table('users').select('*').eq('username', username).execute()
     return response.data[0] if response.data else None
 
+def get_user_by_id(user_id: str, db: Client = Depends(get_db)):
+    """Récupère un utilisateur par son ID"""
+    try:
+        user = db.auth.admin.get_user_by_id(user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
+        return user
+    except ValueError:
+        raise HTTPException(status_code=400, detail="ID utilisateur invalide")
+    except Exception as e:
+        logger.error(f"Erreur récupération utilisateur: {str(e)}")
+        raise HTTPException(status_code=500, detail="Erreur serveur lors de la récupération")
+
 def add_profile(user_id: str, fullname: str, db: Client = Depends(get_db)):
     """Ajoute un profil utilisateur dans la table profiles"""
     profile_data = {

@@ -32,7 +32,7 @@ class AdbDevice:
     def connect(ip: str, port: int = 5555) -> Dict[str, str]:
         """Connecte un périphérique via son adresse IP et port."""
         output = AdbCommandExecutor.execute(["connect", f"{ip}:{port}"])
-        if "connected" in output.lower():
+        if "cannot connect" not in output.lower():
             return {"statut": "Succès", "message": "Connecté", "detail": f"Périphérique {ip} connecté avec succès"}
         return {"statut": "Erreur", "message": "La connexion a échoué", "detail": output}
 
@@ -96,4 +96,16 @@ class AdbDevice:
     def clear_app_data(package_name: str, serial: str = None) -> str:
         """Efface les données d'une application spécifique."""
         cmd = ["-s", serial, "shell", "pm", "clear", package_name] if serial else ["shell", "pm", "clear", package_name]
+        return AdbCommandExecutor.execute(cmd)
+    
+    @staticmethod
+    def set_mode( mode: str, port: str = "5555") -> str:
+        if mode not in ["wifi", "usb"]:
+            raise ValueError("Mode invalide. Utilisez 'wifi' ou 'usb'.")
+
+        # Définition de la commande en fonction du mode choisi
+        cmd = ["tcpip", port] if mode == "wifi" else ["usb"]
+
+        # Ajouter le numéro de série si spécifié
+
         return AdbCommandExecutor.execute(cmd)

@@ -4,7 +4,9 @@ import logging
 from supabase import Client
 from database import SUPABASE_JWT_SECRET, get_db, resolve_token
 import uuid
-from jose import JWTError, jwt
+
+from routes.users import get_user_by_id
+
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +17,49 @@ def get_session(session_id: str, db: Client = Depends(get_db)):
     """Récupère une session par son ID"""
     response = db.table('sessions').select('*').eq('id', session_id).execute()
     return response.data[0] if response.data else None
+
+
+
+def get_sessions_with_users(response, db):
+    sessions = []
+    users = []
+    
+    for session in response.data:
+        user = get_user_by_id(session['user_id'], db)
+        users.append({
+            'user': user,
+            'joined_at': session['joined_at'],
+            'role': session['role']
+        })
+        
+    sessions.append({
+        'session_id': session['session_id'],
+        'users': users,
+        'count': len(users),
+        })
+    return sessions
+    
+def get_all_sessions_with_users(response, db):
+    sessions = []
+    users = []
+    
+    for session in response.data:
+        user = get_user_by_id(session['user_id'], db)
+        users.append({
+            'user': user,
+            'joined_at': session['joined_at'],
+            'role': session['role']
+        })
+        
+        sessions.append({
+        'session_id': session['session_id'],
+        'users': users,
+        'count': len(users),
+        })
+
+    return sessions
+
+
 
 # --- Routes ---
 @router.post("/sessions/add")
@@ -94,12 +139,20 @@ async def create_session(
             detail=error_detail
         )
 
-@router.get("/sessions/list")
-async def get_sessions(db: Client = Depends(get_db)):
+@router.get("/sessions/list/{session_id}")
+async def get_sessions(session_id: str, db: Client = Depends(get_db)):
     """Récupère toutes les sessions"""
+    sessions = []
     try:
-        response = db.table('sessions').select('*').execute()
-        return response.data
+        if session_id=="all":
+            response = db.table('sessions_users').select('*').execute()
+            sessions=get_all_sessions_with_users(response, db)
+        else:    
+            response = db.table('sessions_users').select('*').eq('session_id', session_id).execute()
+            sessions=get_sessions_with_users(response, db)
+        
+        return sessions
+        
     except Exception as e:
         logger.error(f"Erreur récupération sessions: {str(e)}")
         raise HTTPException(status_code=500, detail="Erreur serveur lors de la récupération des sessions")
@@ -243,3 +296,73 @@ async def stop_session(
             status_code=500,
             detail=detail
         )
+
+
+@router.post("/sessions/link/{session_id}/{user_id}")
+async def link_user_to_session(
+    session_id: str,
+    user_id: str,
+    db: Client = Depends(get_db)
+):
+    """Associe un utilisateur à une session"""
+    try:
+        # Validation de l'UUID
+        uuid.UUID(session_id)
+        uuid.UUID(user_id)
+        
+        # Vérification de l'existence de la session
+        session = get_session(session_id, db)
+        if not session:
+            raise HTTPException(status_code=404, detail="Session non trouvée")
+            
+        # Vérification de l'existence de l'utilisateur
+        from routes.users import get_user_by_id
+        get_user_by_id(user_id, db)
+        
+        # Mise à jour de la session
+        inserts = {
+            'user_id': user_id, 
+            'session_id': session_id,
+            'joined_at': datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'),
+            'role': 'participant'
+        }
+        
+        response = db.table('sessions_users').insert(inserts).execute()
+        
+        if response.data:
+            return response.data[0]
+        raise HTTPException(status_code=400, detail="Erreur lors de la liaison utilisateur session")
+    except ValueError:
+        raise HTTPException(status_code=400, detail="ID session ou utilisateur invalide")   
+    except Exception as e:
+        logger.error(f"Erreur liaison utilisateur session: {str(e)}")
+        raise HTTPException(status_code=500, detail="Erreur serveur lors de la liaison utilisateur")
+    
+
+@router.delete("/sessions/unlink/{session_id}/{user_id}")
+async def link_user_to_session(
+    session_id: str,
+    user_id: str,
+    db: Client = Depends(get_db)
+):
+    """Associe un utilisateur à une session"""
+    try:
+        # Validation de l'UUID
+        uuid.UUID(session_id)
+        uuid.UUID(user_id)
+        
+        # Vérification de l'existence de la session
+        session = get_session(session_id, db)
+        if not session:
+            raise HTTPException(status_code=404, detail="Session non trouvée")
+                
+        response = db.table('sessions_users').delete().eq('session_id', session_id ).eq('user_id', user_id).execute()
+        
+        if response.data:
+            return response.data[0]
+        raise HTTPException(status_code=400, detail="Erreur lors de la destruction de la liaison utilisateur session")
+    except ValueError:
+        raise HTTPException(status_code=400, detail="ID session ou utilisateur invalide")   
+    except Exception as e:
+        logger.error(f"Erreur liaison utilisateur session: {str(e)}")
+        raise HTTPException(status_code=500, detail="Erreur serveur lors de la liaison utilisateur")

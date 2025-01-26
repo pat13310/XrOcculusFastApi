@@ -52,7 +52,7 @@ app.add_middleware(
 app.include_router(user_router, dependencies=[Depends(get_db)])
 app.include_router(group_router, dependencies=[Depends(get_db)])
 app.include_router(session_router, dependencies=[Depends(get_db)])
-#app.include_router(device_router, dependencies=[Depends(get_db)])
+app.include_router(device_router, dependencies=[Depends(get_db)])
 #app.include_router(system_router, dependencies=[Depends(get_db)])
 #app.include_router(application_router, dependencies=[Depends(get_db)])
 #app.include_router(phone_router, dependencies=[Depends(get_db)])
