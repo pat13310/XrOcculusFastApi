@@ -35,11 +35,11 @@ jobs:
             git pull origin main
 
             # Si tu utilises Docker, tu peux redémarrer les services Docker ici
-            docker-compose down
-            docker-compose up -d
+            #docker-compose down
+            #docker-compose up -d
 
             # Si tu n'utilises pas Docker, tu peux utiliser une commande pour redémarrer FastAPI avec Uvicorn
-            # par exemple : nohup uvicorn app.main:app --host 0.0.0.0 --port 8000 &
+            nohup uvicorn app.main:app --host 0.0.0.0 --port 8000 &
           EOF
         env:
           DROPLET_IP: ${{ secrets.DROPLET_IP }}
