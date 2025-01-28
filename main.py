@@ -5,9 +5,6 @@ from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel
 from jose import JWTError, jwt
-from datetime import datetime, timedelta
-from supabase import Client
-from typing import Optional
 from config import Settings
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -53,8 +50,8 @@ app.include_router(user_router, dependencies=[Depends(get_db)])
 app.include_router(group_router, dependencies=[Depends(get_db)])
 app.include_router(session_router, dependencies=[Depends(get_db)])
 app.include_router(device_router, dependencies=[Depends(get_db)])
-#app.include_router(system_router, dependencies=[Depends(get_db)])
-#app.include_router(application_router, dependencies=[Depends(get_db)])
+app.include_router(system_router, dependencies=[Depends(get_db)])
+app.include_router(application_router, dependencies=[Depends(get_db)])
 #app.include_router(phone_router, dependencies=[Depends(get_db)])
 #app.include_router(screen_router,dependencies=[Depends(get_db)])
 # app.include_router(comment_router, dependencies=[Depends(get_db)])

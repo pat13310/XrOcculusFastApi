@@ -1,8 +1,9 @@
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from adb.adb_services_applications import AdbApplications
 import os
 import logging
 from decorators import jwt_required
+from database import get_db
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -31,11 +32,31 @@ async def uninstall_application(request:Request,package_name: str):
 @router.get("/app/list/shop")
 @jwt_required
 async def list_applications(request:Request):
-    """Liste toutes les applications installées et non installées dans la boutique."""
+    """Liste toutes les applications disponibles (installées et non installées, etc ...) dans la boutique."""
     logger.debug("Entrée dans la fonction list_installed_applications")
     apps = AdbApplications.list_installed()
     logger.debug(f"Applications installées: {apps}")
     return apps
+
+@router.get("/app/list/available/{user_id}")
+@jwt_required
+async def list_applications_available(request:Request,user_id:str,db = Depends(get_db)):
+    """Liste toutes les applications disponibles (installées et non installées, etc ...) dans la boutique."""
+    
+    logger.debug("Entrée dans la fonction list_applications_available")
+    try:
+        response = db.table("applications_users").select(
+        "applications(name,description,url), status"
+        ).eq("user_id", user_id).execute()
+
+        if response.data:
+            return {"status": "success","count":len(response.data), "data": response.data}
+        else:
+            return {"status": "success", "message": "Aucune application trouvée"}
+    except Exception as e:
+        logger.error(f"Erreur lors de la récupération des applications: {str(e)}")
+    return {"status": "error", "message": "Erreur lors de la récupération des applications"}
+
 
 @router.get("/app/list/used")
 @jwt_required

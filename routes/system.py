@@ -26,8 +26,9 @@ async def uptime(request: Request):
     logger.debug("Entrée dans la fonction uptime")
     try:
         result = AdbSystem.uptime()
+        infos=result.split(",")
         logger.debug(f"Résultat du temps de fonctionnement : {result}")
-        return result
+        return {f"status":"OK", f"uptime":infos[0].strip(), f"users":infos[1].strip(),"infos":infos[2].strip()}
     except Exception as e:
         logger.error(f"Erreur lors de la récupération du temps de fonctionnement : {e}")
         raise HTTPException(status_code=500, detail=str(e))

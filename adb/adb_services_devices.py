@@ -109,3 +109,16 @@ class AdbDevice:
         # Ajouter le numéro de série si spécifié
 
         return AdbCommandExecutor.execute(cmd)
+    
+    
+    @staticmethod
+    def get_ip(device: str)-> str: 
+        try:
+            result=AdbCommandExecutor.execute(["-s", device, "shell", "ip", "a", "show", "wlan0"])
+            for line in result.splitlines():
+                if "inet " in line:
+                    ip_address = line.split()[1].split('/')[0]  # Extraction de l'adresse IP
+                    return ip_address
+            return None  # Si aucune adresse IP n'est trouvée
+        except Exception as e:
+            return None  # En cas d'erreur

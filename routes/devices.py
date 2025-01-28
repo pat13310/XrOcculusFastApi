@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 from adb.adb_services_devices import AdbDevice
 from decorators import jwt_required
+from typing import Optional
 
 import logging
 
@@ -9,8 +10,9 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 class DeviceRequest(BaseModel):
-    ip: str
+    ip: str="auto"
     port: int=5555
+    device: Optional[str] = None
 
 @router.get("/devices/list")
 @jwt_required
@@ -44,14 +46,17 @@ async def connect_device(request: Request, connect_request: DeviceRequest):
     """Connecte un périphérique via son adresse IP et port."""
     logger.debug(f"Entrée dans la fonction connect_device avec IP={connect_request.ip}, Port={connect_request.port}")
     try:
-        result = AdbDevice.connect(connect_request.ip, connect_request.port)
         status="Erreur"
+        if not connect_request.ip or connect_request.ip == "auto":
+            if connect_request.device:
+                connect_request.ip=AdbDevice.get_ip(connect_request.device)
+        result = AdbDevice.connect(connect_request.ip, connect_request.port)
 
         if result.get("statut") == 'Erreur':
             detail=f"Erreur {result.get('message')}: {result.get('detail')}"
         elif not result:
             detail="La connexion a échoué"
-        else:
+        elif  result.get("statut") == 'Succès' :
             status="Succès"
             detail=f"Périphérique {connect_request.ip}:{connect_request.port} connecté avec succès"
 
@@ -108,3 +113,6 @@ async def disconnect_device(request: Request, mode: str):
     except Exception as e:
         logger.error(f"{e}")
         raise HTTPException(status_code=500, detail=f"Impossible de lancer la commande  : {str(e)}")
+    
+
+    

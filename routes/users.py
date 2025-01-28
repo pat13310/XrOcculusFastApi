@@ -45,6 +45,18 @@ def add_profile(user_id: str, fullname: str, db: Client = Depends(get_db)):
         logger.error(f"Erreur création profil: {str(e)}")
         raise HTTPException(status_code=500, detail="Erreur serveur lors de la création du profil")
 
+def add_application(user_id: str,  db: Client = Depends(get_db)):
+    """Ajoute une application utilisateur dans la table applications"""
+    try:
+        response = db.table('applications').select('*').execute()
+
+        if response.data:
+            for app in response.data:
+                db.table('applications_users').insert({"app_id": app['id'], "user_id": user_id, "status": "available"}).execute()
+                
+    except Exception as e:
+        logger.error(f"Erreur création application: {str(e)}")
+        raise HTTPException(status_code=500, detail="Erreur serveur lors de la création de l'application")
 
 # --- Routes ---
 @router.post("/users/add")
@@ -85,6 +97,7 @@ async def add_user(request: Request, db: Client = Depends(get_db)):
                 fullname=user.get('full_name', user['username']),
                 db=db
             )
+            add_application(user_id=sign_up_response.user.id, db=db)
             
             return {
                 "id": sign_up_response.user.id,

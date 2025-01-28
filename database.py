@@ -4,7 +4,7 @@ from supabase import Client
 from config import settings
 import logging
 from typing import Optional
-import jwt
+import jwt_test
 
 # Configuration du logging
 logging.basicConfig(
@@ -46,7 +46,7 @@ def get_db() -> Client:
 def resolve_token(token: str):
     try:
         # Décoder le token en vérifiant la clé secrète et l'algorithme utilisé
-        payload = jwt.decode(token, SUPABASE_JWT_SECRET, algorithms=["HS256"])
+        payload = jwt_test.decode(token, SUPABASE_JWT_SECRET, algorithms=["HS256"])
 
         # Récupérer l'ID utilisateur (subject 'sub' du token)
         user_id = payload.get("sub")
@@ -55,9 +55,9 @@ def resolve_token(token: str):
 
         return user_id
 
-    except jwt.ExpiredSignatureError:
+    except jwt_test.ExpiredSignatureError:
         raise HTTPException(status_code=401, detail="Token JWT expiré")
-    except jwt.InvalidTokenError:
+    except jwt_test.InvalidTokenError:
         raise HTTPException(status_code=401, detail="Token JWT invalide")
     except Exception as e:
         raise HTTPException(status_code=401, detail=f"Erreur lors du décodage du token: {str(e)}")

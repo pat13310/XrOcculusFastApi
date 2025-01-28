@@ -28,7 +28,8 @@
             "args": [
                 "run",
                 "main:app",
-                "--reload"
+                "--reload",
+                
             ],
             "jinja": true,
             "logToFile": true,
