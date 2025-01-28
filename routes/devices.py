@@ -15,7 +15,6 @@ class DeviceRequest(BaseModel):
     device: Optional[str] = None
 
 @router.get("/devices/list")
-@jwt_required
 async def list_devices(request: Request):
     """Liste les périphériques connectés via ADB."""
     logger.debug("Entrée dans la fonction list_devices")
