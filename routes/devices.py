@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, requests
 from pydantic import BaseModel
 from adb.adb_services_devices import AdbDevice
 from decorators import jwt_required
@@ -19,9 +19,10 @@ async def list_devices(request: Request):
     """Liste les périphériques connectés via ADB."""
     logger.debug("Entrée dans la fonction list_devices")
     try:
-        devices = AdbDevice.list_devices()
-        logger.debug(f"Périphériques détectés : {devices}")
-        return {"devices": devices}
+        #devices = AdbDevice.list_devices()
+        response = requests.get("http://localhost:5465/devices/list")
+        logger.debug(f"Périphériques détectés : {response}")
+        return {"devices": response}
     except Exception as e:
         logger.error(f"Erreur lors de la liste des périphériques : {e}")
         raise HTTPException(status_code=500, detail="Erreur lors de la liste des périphériques")
