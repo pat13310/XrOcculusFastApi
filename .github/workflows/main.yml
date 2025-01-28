@@ -1,1 +1,46 @@
+name: Deploy FastAPI to DigitalOcean Droplet
+
+on:
+  push:
+    branches:
+      - main  # Le pipeline se déclenche à chaque push sur la branche main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Étape 1 : Checkout du code depuis GitHub
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      # Étape 2 : Configurer SSH pour accéder au Droplet
+      - name: Set up SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa  # Utilise ta clé privée SSH
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${DROPLET_IP} >> ~/.ssh/known_hosts
+        env:
+          DROPLET_IP: ${{ secrets.DROPLET_IP }}  # Ajoute l'IP de ton Droplet en tant que secret dans GitHub
+
+      # Étape 3 : Se connecter au Droplet et déployer l'application
+      - name: Deploy FastAPI app to Droplet
+        run: |
+          ssh -o StrictHostKeyChecking=no username@${{ secrets.DROPLET_IP }} << 'EOF'
+            # Naviguer vers le dossier de l'application
+            cd /path/to/your/app
+
+            # Mettre à jour le code depuis le dépôt
+            git pull origin main
+
+            # Si tu utilises Docker, tu peux redémarrer les services Docker ici
+            docker-compose down
+            docker-compose up -d
+
+            # Si tu n'utilises pas Docker, tu peux utiliser une commande pour redémarrer FastAPI avec Uvicorn
+            # par exemple : nohup uvicorn app.main:app --host 0.0.0.0 --port 8000 &
+          EOF
+        env:
+          DROPLET_IP: ${{ secrets.DROPLET_IP }}
 
