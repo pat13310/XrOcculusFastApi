@@ -15,7 +15,7 @@ jobs:
         
       - name: Déployer sur DigitalOcean
         run: |
-          ssh ${{ secrets.SSH_USER }}@${{ secrets.DROPLET_IP }} -i /Users/p-gar/xen<< 'EOF'
+            ssh -o StrictHostKeyChecking=no root@206.81.16.150 -i C:\Users\p-gar\xen<< 'EOF'
             cd /root/home/deployer
             git pull origin main
             source venv/bin/activate
