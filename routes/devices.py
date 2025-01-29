@@ -21,7 +21,7 @@ async def list_devices(request: Request):
     logger.debug("Entrée dans la fonction list_devices")
     try:
         #devices = AdbDevice.list_devices()
-        response = requests.get("http://localhost:5465/devices/list")
+        response = requests.get("http://128.79.8.91:5465/devices/list")
         logger.debug(f"Périphériques détectés : {response}")
         return {"devices": response}
     except Exception as e:
