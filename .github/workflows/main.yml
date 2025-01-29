@@ -12,14 +12,7 @@ jobs:
     steps:
       - name: Récupérer le code
         uses: actions/checkout@v4
-
-      - name: Configurer SSH
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ secrets.DROPLET_IP }} >> ~/.ssh/known_hosts
-
+        
       - name: Déployer sur DigitalOcean
         run: |
           ssh ${{ secrets.SSH_USER }}@${{ secrets.DROPLET_IP }} << 'EOF'
