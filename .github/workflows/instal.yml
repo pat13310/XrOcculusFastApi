@@ -19,12 +19,12 @@ jobs:
       # Étape 2 : Copier setup_server.sh sur le Droplet
       - name: Upload setup script to Droplet
         run: |
-          scp -o StrictHostKeyChecking=no setup_server.sh root@206.81.16.150:/home/root/setup_server.sh
+          scp -o StrictHostKeyChecking=no setup_server.sh root@206.81.16.150:/root/setup_server.sh
 
       # Étape 3 : Exécuter setup_server.sh sur le Droplet
       - name: Run setup script on Droplet
         run: |
           ssh -o StrictHostKeyChecking=no root@$206.81.16.150 << 'EOF'
-            chmod +x /home/username/setup_server.sh
-            /home/username/setup_server.sh
+            chmod +x /root/setup_server.sh
+            /root/setup_server.sh
           EOF
