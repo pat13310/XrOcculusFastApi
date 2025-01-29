@@ -1,0 +1,38 @@
+name: Deploy XrOcculus with FastApi to DigitalOcean
+
+on:
+  push:
+    branches:
+      - main  # Exécuter le workflow à chaque push sur main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # ✅ Étape 1 : Récupérer le code du dépôt
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # ✅ Étape 2 : Configurer la clé SSH
+      - name: Set up SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.DROPLET_IP }} >> ~/.ssh/known_hosts
+          eval "$(ssh-agent -s)"
+          ssh-add ~/.ssh/id_rsa
+
+      # ✅ Étape 3 : Vérifier la connexion SSH
+      - name: Test SSH connection
+        run: ssh -o StrictHostKeyChecking=no root@${{ secrets.DROPLET_IP }} "echo '✅ SSH connection successful'"
+
+      # ✅ Étape 4 : Transférer le script `setup_fastapi.sh` sur le serveur
+      - name: Upload setup script to Droplet
+        run: |
+          scp -o StrictHostKeyChecking=no setup_fastapi.sh root@${{ secrets.DROPLET_IP }}:/root/
+
+      # ✅ Étape 5 : Exécuter le script sur le serveur
+      - name: Run setup script on Droplet
+        run: ssh -o StrictHostKeyChecking=no root@${{ secrets.DROPLET_IP }} "chmod +x /root/setup_fastapi.sh && /root/setup_fastapi.sh"
