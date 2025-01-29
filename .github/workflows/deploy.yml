@@ -31,7 +31,7 @@ jobs:
       # ✅ Étape 4 : Transférer le script `setup_fastapi.sh` sur le serveur
       - name: Upload setup script to Droplet
         run: |
-          scp -o StrictHostKeyChecking=no setup_fastapi.sh root@${{ secrets.DROPLET_IP }}:/root/
+          scp -o StrictHostKeyChecking=no ./setup_fastapi.sh root@${{ secrets.DROPLET_IP }}:/root/
 
       # ✅ Étape 5 : Exécuter le script sur le serveur
       - name: Run setup script on Droplet
