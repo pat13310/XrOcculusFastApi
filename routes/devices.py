@@ -1,4 +1,5 @@
-from fastapi import APIRouter, HTTPException, Request, requests
+import requests
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 from adb.adb_services_devices import AdbDevice
 from decorators import jwt_required
