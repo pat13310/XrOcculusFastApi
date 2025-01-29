@@ -10,6 +10,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Check current directory
+        run: pwd
       # Étape 1 : Récupérer le code du dépôt
       - name: Checkout code
         uses: actions/checkout@v3
@@ -22,7 +24,7 @@ jobs:
       # Étape 3 : Exécuter setup_server.sh sur le Droplet
       - name: Run setup script on Droplet
         run: |
-          ssh -o StrictHostKeyChecking=no username@${{ secrets.DROPLET_IP }} << 'EOF'
-            chmod +x /home/username/setup_server.sh
-            /home/username/setup_server.sh
+          ssh -o StrictHostKeyChecking=no root@$206.81.16.150 << 'EOF'
+            chmod +x /root/setup_server.sh
+            /root/setup_server.sh
           EOF
