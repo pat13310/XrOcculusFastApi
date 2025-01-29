@@ -1,4 +1,3 @@
-import json
 import logging
 from fastapi import Depends, FastAPI, HTTPException, status, Request
 from fastapi.responses import JSONResponse
@@ -201,8 +200,8 @@ async def forgot_password(request: Request, db = Depends(get_db)):
 async def read_root():
     return {
         "message": "Bienvenue sur l'API XrOcculus FastAPI avec supabase",
-        "version": config.get("version", "1.0.2"),
-        "date_de_creation": "2025-01-25",
+        "version": config.get("version", "1.0.3"),
+        "date_de_creation": "2025-01-28",
         "auteur": "XenDev"
     }
 
