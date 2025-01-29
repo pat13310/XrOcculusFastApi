@@ -16,7 +16,7 @@ jobs:
       - name: Déployer sur DigitalOcean
         run: |
           ssh ${{ secrets.SSH_USER }}@${{ secrets.DROPLET_IP }} -i /Users/p-gar/xen<< 'EOF'
-            cd /root/home/deployer/fastapi-app
+            cd /root/home/deployer
             git pull origin main
             source venv/bin/activate
             pip install -r requirements.txt
