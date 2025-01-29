@@ -1,0 +1,28 @@
+name: Deploy FastAPI to DigitalOcean Droplet
+
+on:
+  push:
+    branches:
+      - main  # Déclenchement à chaque push sur main
+
+jobs:
+  setup-server:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Étape 1 : Récupérer le code du dépôt
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Étape 2 : Copier setup_server.sh sur le Droplet
+      - name: Upload setup script to Droplet
+        run: |
+          scp -o StrictHostKeyChecking=no setup_server.sh username@${{ secrets.DROPLET_IP }}:/home/username/setup_server.sh
+
+      # Étape 3 : Exécuter setup_server.sh sur le Droplet
+      - name: Run setup script on Droplet
+        run: |
+          ssh -o StrictHostKeyChecking=no username@${{ secrets.DROPLET_IP }} << 'EOF'
+            chmod +x /home/username/setup_server.sh
+            /home/username/setup_server.sh
+          EOF
