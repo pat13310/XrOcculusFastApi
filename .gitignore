@@ -48,3 +48,4 @@ coverage.xml
 
 # Ignorer les fichiers de Docker
 docker-compose.override.yml
+.vercel
