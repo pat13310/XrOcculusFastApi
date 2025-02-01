@@ -23,11 +23,10 @@ async def list_devices(request: Request):
         #devices = AdbDevice.list_devices()
         response = requests.get("http://128.79.8.91:5465/devices/list")
         logger.debug(f"Périphériques détectés : {response}")
-        return {"devices": response}
+        return {"status": "success", "devices": response}
     except Exception as e:
         logger.error(f"Erreur lors de la liste des périphériques : {e}")
-        raise HTTPException(status_code=500, detail="Erreur lors de la liste des périphériques")
-
+        return {"status": "error", "details": "Erreur lors de la liste des périphériques"}
 @router.get("/devices/{serial}")
 @jwt_required
 async def device_info(serial: str):
@@ -56,9 +55,10 @@ async def connect_device(request: Request, connect_request: DeviceRequest):
         if result.get("statut") == 'Erreur':
             detail=f"Erreur {result.get('message')}: {result.get('detail')}"
         elif not result:
+
             detail="La connexion a échoué"
         elif  result.get("statut") == 'Succès' :
-            status="Succès"
+            status="success"
             detail=f"Périphérique {connect_request.ip}:{connect_request.port} connecté avec succès"
 
     except HTTPException as e:
@@ -68,7 +68,7 @@ async def connect_device(request: Request, connect_request: DeviceRequest):
     except Exception as e:
         logger.error(f"Erreur lors de la connexion du périphérique : {e}")
         detail = f"Impossible de se connecter à {connect_request.ip}:{connect_request.port}"
-    return {"status": status, "message": detail}
+    return {"status": status, "detail": detail}
 
 @router.post("/devices/disconnect")
 @jwt_required
@@ -94,26 +94,26 @@ async def disconnect_device(request: Request, disconnect_request: DeviceRequest)
         logger.error(f"{e}")
         detail = f"Impossible de se déconnecter à {disconnect_request.ip}:{disconnect_request.port}"
     
-    return {"status": status, "message": detail}
+    return {"status": status, "detail": detail}
     
 @router.post("/devices/mode/{mode}")
 @jwt_required
 async def disconnect_device(request: Request, mode: str):
     try:
+        detail=""
         result = AdbDevice.set_mode(mode=mode)
         if "restarting" in result:
             return {"message": f"Mode {mode} activé"}
         if "Erreur" in result:
-            raise HTTPException(status_code=400, detail=f"Aucun appareil connecté")
+            detail=f"Aucun appareil connecté"
         if not result:            
-            raise HTTPException(status_code=400, detail="La commande a échoué")
+            detail="La commande a échoué"
         
     except HTTPException as e:
         logger.error(f"{e}")
         raise e
     except Exception as e:
         logger.error(f"{e}")
-        raise HTTPException(status_code=500, detail=f"Impossible de lancer la commande  : {str(e)}")
-    
+        return {"status": "error","detail":detail}
 
     
