@@ -23,6 +23,8 @@ from database import get_db
 
 from fastapi.openapi.docs import get_swagger_ui_html, get_redoc_html
 
+from utils.testip import recuperer_ip_locale
+
 # Configurer le journal
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -204,6 +206,11 @@ async def read_root():
         "date_de_creation": "2025-01-28",
         "auteur": "XenDev"
     }
+
+# Route Ip
+@app.get("/auth/whoami")
+async def read_ip():
+    return {"ip": recuperer_ip_locale()}
 
 # Route de santé
 @app.get("/health")
